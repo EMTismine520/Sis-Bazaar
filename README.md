@@ -6,7 +6,7 @@
 
 网页版本已配置 GitHub Pages 自动部署，发布地址为：
 
-<https://emtismine520.github.io/sis-bazaar/>
+<https://emtismine520.github.io/Sis-Bazaar/>
 
 用手机浏览器打开即可游玩。网页使用指针拖拽操作：将相同食材拖到一起合成，把食材拖入棋盘上的烹饪锅后点击开火。点击“图鉴”可以查看已发现的蔬菜、肉类和锅料理。
 
