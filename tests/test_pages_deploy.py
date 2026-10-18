@@ -17,6 +17,7 @@ def test_pages_workflow_deploys_web_directory_on_main():
     assert "id-token: write" in workflow
     assert "actions/checkout@v4" in workflow
     assert "actions/configure-pages@v5" in workflow
+    assert "enablement: true" in workflow
     assert "actions/upload-pages-artifact@v3" in workflow
     assert "path: ./web" in workflow
     assert "actions/deploy-pages@v4" in workflow
