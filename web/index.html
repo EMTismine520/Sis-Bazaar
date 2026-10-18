@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="theme-color" content="#d6efe0">
-  <title>肥鹅小厨房</title>
+<title>肥鹅小厨房 v2.0.0</title>
   <style>
     :root { --bg:#d6efe0; --panel:#fff9e0; --blue:#e2f3f5; --ink:#453a30; --muted:#6f6756; --orange:#e07e30; --dark:#a04e22; }
     * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -14,6 +14,7 @@
     #app { width:min(100vw, 480px); min-height:100dvh; padding:10px 12px calc(14px + env(safe-area-inset-bottom)); position:relative; overflow:hidden; }
     .hud { height:56px; display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--panel); border:2px solid var(--orange); border-radius:18px; font-size:14px; font-weight:700; white-space:nowrap; }
     .hud .day { color:var(--dark); margin-right:auto; }
+    .hud .version { color:var(--muted); font-size:10px; font-weight:800; }
     .hud .resource { padding:7px 5px; }
     .bag-progress { display:inline-flex; align-items:center; gap:4px; background:#ffe5ac; border:1px solid var(--orange); border-radius:12px; padding:7px 8px; font-weight:800; }
     .bag-progress.meat { background:#f5d6c5; border-color:#c76b4c; }
@@ -24,7 +25,8 @@
     .scene h1 { font-size:24px; margin:0 0 8px; color:var(--dark); }
     .scene p { margin:0; color:var(--muted); font-size:13px; }
     .goose { position:absolute; left:42px; bottom:10px; font-size:58px; filter:drop-shadow(0 4px 0 rgba(160,78,34,.15)); }
-    .order { position:absolute; right:0; top:20px; width:164px; min-height:92px; padding:10px 12px; background:var(--panel); border:2px solid var(--orange); border-radius:16px; box-shadow:0 4px 0 rgba(160,78,34,.1); }
+    .order { position:absolute; right:0; top:20px; width:164px; min-height:92px; padding:10px 12px; background:var(--panel); border:2px solid var(--orange); border-radius:16px; box-shadow:0 4px 0 rgba(160,78,34,.1); cursor:copy; }
+    .order:hover { transform:translateY(-2px); box-shadow:0 6px 0 rgba(160,78,34,.14); }
     .order .caption { color:var(--dark); font-size:12px; font-weight:800; }
     .order .target { margin-top:8px; font-size:16px; font-weight:800; }
     .order .reward { margin-top:7px; font-size:11px; color:var(--muted); }
@@ -50,9 +52,11 @@
     .cell.pot-cell .pot-count { position:absolute; top:3px; right:3px; min-width:20px; padding:2px 4px; border-radius:8px; background:#d86e2f; color:white; font-size:9px; line-height:1; white-space:nowrap; }
     .cell.food.selected { outline:3px solid #e39a43; outline-offset:-3px; filter:drop-shadow(0 5px 3px rgba(181,101,24,.28)); }
     .footer { display:flex; gap:8px; align-items:center; margin-top:12px; padding:8px 10px; min-height:52px; background:var(--panel); border:2px solid var(--orange); border-radius:15px; font-size:12px; }
-    #message { flex:1; }
-    #reset, #catalogOpen { padding:8px 9px; background:#ffdfad; border:1px solid var(--orange); border-radius:11px; color:var(--dark); font-size:12px; }
+    #message { flex:1; min-width:0; }
+    .footer button { flex-shrink:0; }
+    #reset, #catalogOpen, #shopOpen { padding:8px 9px; background:#ffdfad; border:1px solid var(--orange); border-radius:11px; color:var(--dark); font-size:12px; }
     #catalogOpen { background:#e2f3f5; border-color:#70aeb8; }
+    #shopOpen { background:#f8e2b8; border-color:#d39a43; }
     .catalog-backdrop { position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center; padding:14px; overflow:hidden; background:rgba(45,53,45,.45); touch-action:pan-y; }
     .catalog-backdrop.open { display:flex; }
     .catalog { width:min(480px, calc(100vw - 32px)); max-width:100%; min-width:0; height:min(80vh, 760px); max-height:calc(100vh - 28px); height:min(80dvh, 760px); max-height:calc(100dvh - 28px); display:flex; flex-direction:column; overflow:hidden; background:#fff9e0; border:3px solid var(--orange); border-radius:22px; padding:16px; box-shadow:0 12px 36px rgba(49,49,37,.25); }
@@ -95,25 +99,55 @@
     #potCook:disabled { background:#d8c9ae; color:#9e927d; cursor:not-allowed; }
     #potClear { background:#e2f3f5; border:1px solid #70aeb8; color:#356d76; }
     .catalog-cooking .catalog-title { color:#b9652c; }
-    @media (max-width:600px) { .catalog-backdrop { padding:10px; } .catalog { width:calc(100vw - 20px); height:min(78vh, 680px); max-height:calc(100vh - 20px); height:min(78dvh, 680px); max-height:calc(100dvh - 20px); } }
-    @media (max-width:420px) { #app { padding-left:8px; padding-right:8px; } .hud { gap:4px; padding-left:7px; padding-right:7px; font-size:12px; } .bag-progress { padding:6px 5px; } .catalog { padding:12px 10px; border-radius:18px; } .catalog-item { font-size:9px; } }
-    .toast { position:fixed; left:50%; top:82px; transform:translateX(-50%); padding:10px 16px; color:#fff; background:rgba(69,58,48,.9); border-radius:20px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .18s; z-index:5; }
+    .shop-backdrop { position:fixed; inset:0; z-index:11; display:none; align-items:center; justify-content:center; padding:14px; overflow:hidden; background:rgba(45,53,45,.45); touch-action:pan-y; }
+    .shop-backdrop.open { display:flex; }
+    .shop { width:min(480px, calc(100vw - 32px)); max-width:100%; min-width:0; max-height:min(82vh, 700px); max-height:min(82dvh, 700px); display:flex; flex-direction:column; overflow:hidden; background:#fff9e0; border:3px solid #d39a43; border-radius:22px; padding:16px; box-shadow:0 12px 36px rgba(49,49,37,.25); }
+    .shop-head { display:flex; align-items:center; gap:10px; flex:0 0 auto; margin-bottom:10px; }
+    .shop-head h2 { margin:0; color:var(--dark); font-size:20px; }
+    .shop-head p { margin:3px 0 0; color:var(--muted); font-size:11px; }
+    .shop-close { margin-left:auto; width:34px; height:34px; border-radius:50%; background:#ffdfad; border:1px solid var(--orange); font-size:20px; line-height:1; }
+    .shop-content { min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; }
+    .shop-group { padding:10px 0 13px; border-top:1px dashed #d6b77b; }
+    .shop-group:first-child { border-top:0; }
+    .shop-group h3 { margin:0 0 8px; color:var(--dark); font-size:14px; }
+    .shop-items { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
+    .shop-item { min-width:0; padding:5px 3px 7px; border:1px solid #ecd1a1; border-radius:10px; background:#fff4d8; text-align:center; font-size:10px; }
+    .shop-item.locked { background:#f8eed8; }
+    .shop-item img { width:100%; aspect-ratio:1; object-fit:contain; filter:drop-shadow(0 3px 2px rgba(77,60,44,.16)); }
+    .shop-item img.locked-image { opacity:.22; filter:grayscale(1); }
+    .shop-item b, .shop-item small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .shop-item b { color:var(--dark); font-size:10px; }
+    .shop-item small { min-height:14px; margin-top:2px; color:var(--muted); font-size:9px; }
+    .shop-item button { width:100%; margin-top:5px; padding:5px 2px; border-radius:8px; background:#e07e30; color:white; font-size:10px; font-weight:800; }
+    .shop-item button:disabled { background:#d8c9ae; color:#9e927d; cursor:not-allowed; }
+    .shop-note { margin:6px 0 0; color:var(--muted); font-size:11px; line-height:1.4; }
+    @media (max-width:600px) { .catalog-backdrop, .shop-backdrop { padding:10px; } .catalog { width:calc(100vw - 20px); height:min(78vh, 680px); max-height:calc(100vh - 20px); height:min(78dvh, 680px); max-height:calc(100dvh - 20px); } .shop { width:calc(100vw - 20px); max-height:min(78vh, 680px); max-height:min(78dvh, 680px); } }
+    @media (max-width:420px) { #app { padding-left:8px; padding-right:8px; } .hud { gap:4px; padding-left:7px; padding-right:7px; font-size:12px; } .hud .version { display:none; } .bag-progress { padding:6px 5px; } .catalog, .shop { padding:12px 10px; border-radius:18px; } .catalog-item, .shop-item { font-size:9px; } .shop-items { gap:5px; } }
+    @media (max-width:420px) { .hud { flex-wrap:wrap; height:auto; min-height:56px; } .hud .version { display:inline; } .hud .resource { padding:4px 2px; } .bag-progress { font-size:10px; gap:2px; } .footer { flex-wrap:wrap; gap:6px; } #message { flex-basis:100%; } .scene h1 { font-size:20px; } .scene p { max-width:140px; font-size:11px; } .order { width:154px; } }
+    .toast { position:fixed; left:50%; top:82px; transform:translateX(-50%); width:max-content; max-width:calc(100vw - 24px); padding:10px 16px; color:#fff; background:rgba(69,58,48,.9); border-radius:20px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .18s; z-index:20; }
     .toast.show { opacity:1; }
     @media (min-width:600px) { #app { padding-top:20px; } }
   </style>
 </head>
 <body>
 <main id="app">
-  <header class="hud"><span class="day" id="day">第 1 天</span><span class="resource" id="coins">🪙 120</span><span class="resource">💎 3</span><span class="bag-progress" aria-label="蔬菜包开启进度">🥬 <b id="openedCount">0</b>/1000</span><span class="bag-progress meat" aria-label="肉类包开启进度">🥩 <b id="meatOpenedCount">0</b>/1000</span></header>
-  <section class="scene"><h1>肥鹅小厨房</h1><p>今天也要做出好吃的料理！</p><div class="goose">🪿</div><div class="order"><div class="caption">今日订单</div><div class="target" id="orderTarget"></div><div class="reward" id="orderReward"></div></div></section>
+  <header class="hud"><span class="day" id="day">第 1 天</span><span class="resource" id="coins">🪙 120</span><span class="resource">💎 3</span><span class="bag-progress" aria-label="蔬菜包开启进度">🥬 <b id="openedCount">0</b>/1000</span><span class="bag-progress meat" aria-label="肉类包开启进度">🥩 <b id="meatOpenedCount">0</b>/1000</span><span class="version">v2.0.0</span></header>
+  <section class="scene"><h1>肥鹅小厨房</h1><p>今天也要做出好吃的料理！</p><div class="goose">🪿</div><div class="order" id="orderCard" role="button" aria-label="将匹配的食材或料理拖到此处提交订单"><div class="caption">今日订单 · 拖到此处提交</div><div class="target" id="orderTarget"></div><div class="reward" id="orderReward"></div></div></section>
   <section class="board" id="board" aria-label="合成棋盘"></section>
-  <footer class="footer"><span id="message">拖动相同食材进行合成</span><button id="catalogOpen" aria-label="打开料理图鉴">📖 图鉴</button><button id="reset">重新开始</button></footer>
+  <footer class="footer"><span id="message">拖动相同食材进行合成</span><button id="shopOpen" aria-label="打开食材商店">🛒 商店</button><button id="catalogOpen" aria-label="打开料理图鉴">📖 图鉴</button><button id="reset">重新开始</button></footer>
 </main>
 <div id="toast" class="toast"></div>
 <div class="catalog-backdrop" id="catalogBackdrop" role="dialog" aria-modal="true" aria-labelledby="catalogTitle">
   <section class="catalog">
     <header class="catalog-head"><h2 id="catalogTitle">料理图鉴</h2><button class="catalog-close" id="catalogClose" aria-label="关闭料理图鉴">×</button></header>
     <div class="catalog-content" id="catalogContent"></div>
+  </section>
+</div>
+<div class="shop-backdrop" id="shopBackdrop" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
+  <section class="shop">
+    <header class="shop-head"><div><h2 id="shopTitle">食材商店</h2><p>金币：<b id="shopCoins">🪙 120</b> · 解锁下一种食材后可继续合成</p></div><button class="shop-close" id="shopClose" aria-label="关闭食材商店">×</button></header>
+    <p class="shop-note" id="shopStatus">Lv.1–Lv.3 已开放；之后两条路线分别逐级解锁。</p>
+    <div class="shop-content" id="shopContent"></div>
   </section>
 </div>
 <div class="pot-backdrop" id="potBackdrop" role="dialog" aria-modal="true" aria-labelledby="potTitle">
@@ -130,6 +164,9 @@
 </div>
 <script>
 (() => {
+  const GAME_VERSION='2.0.0';
+  const SAVE_SCHEMA=2;
+  const SAVE_KEY='sis-bazaar-game-v2';
   const kinds = {
     cabbage:{category:'vegetable',name:'包菜',emoji:'🥬',levels:['包菜','包菜沙拉','包菜卷'],maxLevel:3,assetPrefix:'foods'},
     carrot:{category:'vegetable',name:'胡萝卜',emoji:'🥕',levels:['胡萝卜','胡萝卜沙拉','胡萝卜浓汤'],maxLevel:3,assetPrefix:'foods'},
@@ -211,6 +248,12 @@
   function chainFood(type, level, category){ const item=routeItem(type,level,category); return item ? {category,chain:true,type:item.type,level:item.level} : null; }
   const potVegetableAliases={cabbage:'cabbage',tomato:'tomato',pepper:'pepper',carrot:'carrot',mushroom:'mushroom',corn:'corn',potato:'potato', 'purple-cabbage':'purple-cabbage'};
   const potMeatAliases={'sausage':'chicken','chicken-leg':'chicken',bacon:'pork',meatballs:'pork','thick-steak':'beef',ribs:'beef','pork-chop':'pork','roast-roll':'pork','bone-steak':'beef','pork-belly':'pork','roasted-ribs':'beef','meat-feast':'pork'};
+  function routeMaxLevel(category){ return category==='meat'?meatRoute.length:vegetableRoute.length; }
+  function isRouteLevelUnlocked(category,level){ return !state?.unlockedLevels || level<=(state.unlockedLevels[category] ?? routeMaxLevel(category)); }
+  function ingredientUnlockCost(level){ return 60+(level-4)*30; }
+  function mergeReward(){ return 3; }
+  function cookingReward(food){ return food.level*3; }
+  function orderReward(level){ return 16+level*8; }
   function potIngredientKey(food){
     if(!food) return '';
     if(food.category==='fusion') return canonicalFusionRecipe(food.recipe);
@@ -232,6 +275,7 @@
     const food=state.cells[index];
     if(!Number.isInteger(index) || index<0 || index>=state.cells.length || [state.bagIndex,state.meatBagIndex,state.potIndex].includes(index)) return {result:'invalid',message:'食材包和特殊格不能放入锅中'};
     if(!food || food.kind==='bag' || food.kind==='pot' || !potIngredientKey(food)) return {result:'invalid',message:'只有可烹饪食材或料理可以放入锅中'};
+    if(food.chain && state.unlockedLevels && !isRouteLevelUnlocked(food.category,food.level)) return {result:'invalid',message:'请先在商店解锁该食材'};
     if(state.potContents.length>=3) return {result:'full',message:'烹饪锅最多放入 3 份食材'};
     state.cells[index]=null;
     state.potContents.push(food);
@@ -240,6 +284,7 @@
   function cookPotContents(){
     const foods=state.potContents.slice();
     if(foods.length<2 || foods.length>3) return {result:'invalid',message:'烹饪锅至少需要 2 份食材'};
+    if(foods.some(food=>food.chain && state.unlockedLevels && !isRouteLevelUnlocked(food.category,food.level))) return {result:'invalid',message:'请先在商店解锁锅内食材'};
     const route=potRouteForFoods(foods);
     if(!route) return {result:'invalid',message:'这些食材没有对应的锅料理配方'};
     const destination=emptyBoardIndex();
@@ -248,19 +293,127 @@
     state.cells[destination]=food;
     state.potContents=[];
     discover(food);
+    if(Number.isFinite(state.coins))state.coins+=cookingReward(food);
     return {result:'cooked',destination,food,route};
   }
   function assetFor(food,level){ if(typeof food==='object' && food.category==='fusion'){ const route=potById[canonicalFusionRecipe(food.recipe)] || fusionRoute(food.recipe,level); return route?.asset || ''; } const type=typeof food==='string'?food:food.type; if(typeof food==='object' && isChainFood(food))return `${food.category==='meat'?meatAssetPrefix:vegetableAssetPrefix}/${type}.png`; return `assets/${kinds[type].assetPrefix}/${type}-lv${level}.png`; }
-  function randomFusionRoute(){ const routes=Math.random()<.5?fusionLv4Routes:fusionLv5Routes; return routes[Math.floor(Math.random()*routes.length)]; }
-  function newOrder(){ if(Math.random()<.2){ const route=randomFusionRoute(); return {category:'fusion',recipe:route.id,level:route.level,reward:16+route.level*8}; } const route=Math.random()<.6?vegetableRoute:meatRoute; const item=route[1+Math.floor(Math.random()*(route.length-1))]; return {category:meatByType[item.type]?'meat':'vegetable',chain:true,type:item.type,level:item.level,reward:16+item.level*8}; }
+  function orderCandidates(){
+    const ingredients=[],dishes=[];
+    for(const [category,route] of [['vegetable',vegetableRoute],['meat',meatRoute]]){
+      for(const item of route){ if(isRouteLevelUnlocked(category,item.level) && state.discovered[`${item.type}:${item.level}`]) ingredients.push({category,chain:true,type:item.type,level:item.level}); }
+    }
+    for(const route of potRoutes){ if(state.discovered[`fusion:${canonicalFusionRecipe(route.id)}:${route.level}`]) dishes.push({category:'fusion',recipe:route.id,level:route.level}); }
+    return dishes.length?[...ingredients,...dishes]:ingredients.filter(item=>item.level===1);
+  }
+  function newOrder(){
+    const candidates=orderCandidates();
+    const item=candidates.length?candidates[Math.floor(Math.random()*candidates.length)]:{category:'vegetable',chain:true,type:'cabbage',level:1};
+    return {...item,reward:orderReward(item.level)};
+  }
+  function sameFood(a,b){
+    if(!a || !b || a.kind || b.kind || a.level!==b.level)return false;
+    if(a.category==='fusion' || b.category==='fusion')return a.category===b.category && canonicalFusionRecipe(a.recipe)===canonicalFusionRecipe(b.recipe);
+    const category=food=>food.category || kinds[food.type]?.category;
+    return category(a)===category(b) && a.type===b.type;
+  }
+  function submitOrder(index){
+    const food=state.cells[index];
+    if([state.bagIndex,state.meatBagIndex,state.potIndex].includes(index) || !sameFood(food,state.order)){
+      toast(`订单需要 ${foodName(state.order)} Lv.${state.order.level}，食材已保留`); return {result:'invalid'};
+    }
+    const reward=orderReward(state.order.level);
+    state.cells[index]=null; state.coins+=reward; state.day++;
+    state.order=newOrder(); render(); toast(`订单完成！金币 +${reward}，迎来第 ${state.day} 天`);
+    return {result:'submitted',reward};
+  }
+  function buyIngredient(category,level){
+    if(!['vegetable','meat'].includes(category) || !Number.isInteger(level) || level<4 || level>routeMaxLevel(category))return {result:'invalid'};
+    if(isRouteLevelUnlocked(category,level)){toast('该等级已解锁');return {result:'unlocked'};}
+    if(level!==state.unlockedLevels[category]+1){toast(`请先解锁 Lv.${level-1}，必须按顺序购买`);return {result:'sequence'};}
+    const price=ingredientUnlockCost(level);
+    if(state.coins<price){toast(`金币不足，需要 ${price} 金币，当前 ${state.coins} 金币`);return {result:'poor'};}
+    state.coins-=price; state.unlockedLevels[category]=level;
+    const item=routeForCategory(category)[level-1];
+    render(); toast(`已解锁 Lv.${level} ${item.name}，快去合成发现吧！`);
+    return {result:'purchased',price};
+  }
+  function renderShop(){
+    $('shopCoins').textContent=`🪙 ${state.coins}`;
+    $('shopContent').innerHTML=['vegetable','meat'].map(category=>{
+      const route=routeForCategory(category), unlocked=state.unlockedLevels[category], next=route[unlocked];
+      const summary=next?`下一等级：Lv.${next.level} ${next.name} · ${ingredientUnlockCost(next.level)} 金币`:'全部等级已解锁';
+      const items=route.map(item=>{
+        const owned=item.level<=unlocked, sequential=item.level===unlocked+1, price=ingredientUnlockCost(item.level);
+        const status=owned?'已解锁':!sequential?`先解锁 Lv.${item.level-1}`:state.coins<price?'金币不足':'可购买';
+        return `<article class="shop-item${owned?'':' locked'}"><img src="${category==='meat'?meatAssetPrefix:vegetableAssetPrefix}/${item.type}.png" alt="${item.name}" class="${owned?'':'locked-image'}"><b>Lv.${item.level} ${item.name}</b><small>${status}</small><button data-category="${category}" data-level="${item.level}" ${owned || !sequential || state.coins<price?'disabled':''}>${owned?'已开放':`🪙 ${price}`}</button></article>`;
+      }).join('');
+      return `<section class="shop-group"><h3>${category==='meat'?'🥩 肉类路线':'🥬 蔬菜路线'}</h3><p class="shop-note">${summary}</p><div class="shop-items">${items}</div></section>`;
+    }).join('');
+  }
   // Legacy weighting reference: Math.random()<.6?randomKind(vegetableKeys):randomKind(meatKeys)
   // Legacy level reference retained for saved games: kind.maxLevel-1; 特色料理 remains supported.
   function foodName(food){ return food.category==='fusion'?fusionName(food.recipe,food.level):isChainFood(food)?routeItem(food.type,food.level,food.category).name:kinds[food.type].levels[food.level-1]; }
   function foodEmoji(food){ return food.category==='fusion'?'🍽️':isChainFood(food)?routeItem(food.type,food.level,food.category).emoji:kinds[food.type].emoji; }
-  function reset(){ state={day:1,coins:120,bags:1000,opened:0,meatBags:1000,meatOpened:0,bagIndex:0,meatBagIndex:1,potIndex:2,potOpen:false,potContents:[],order:newOrder(),cells:Array(56).fill(null),discovered:{}}; [1,1,1,1,1].forEach(level=>addFood('cabbage',level,true,'vegetable')); [1,1].forEach(level=>addFood('chicken-leg',level,true,'meat')); state.cells[state.bagIndex]={kind:'bag',category:'vegetable'}; state.cells[state.meatBagIndex]={kind:'bag',category:'meat'}; state.cells[state.potIndex]={kind:'pot'}; state.message='将蔬菜、肉类或料理拖入锅中，再点击锅开火'; render(); }
+  function beginNewGame(){
+    state={day:1,coins:120,bags:1000,opened:0,meatBags:1000,meatOpened:0,bagIndex:0,meatBagIndex:1,potIndex:2,potOpen:false,shopOpen:false,potContents:[],order:null,cells:Array(56).fill(null),discovered:{},unlockedLevels:{vegetable:3,meat:3}};
+    [1,1,1,1,1].forEach(level=>addFood('cabbage',level,true,'vegetable'));
+    [1,1].forEach(level=>addFood('chicken-leg',level,true,'meat'));
+    state.cells[state.bagIndex]={kind:'bag',category:'vegetable'}; state.cells[state.meatBagIndex]={kind:'bag',category:'meat'}; state.cells[state.potIndex]={kind:'pot'};
+    state.cells.forEach(food=>{if(food && food.chain)discover(food);});
+    state.order=newOrder();
+    state.message='拖动相同食材合成、提交订单赚金币，再去商店解锁高级食材';
+  }
+  function reset(){
+    if(!window.confirm('重新开始会清除本地保存的全部进度，确定继续吗？'))return;
+    try{localStorage.removeItem(SAVE_KEY);}catch(error){}
+    $('shopBackdrop').classList.remove('open'); $('catalogBackdrop').classList.remove('open'); $('potBackdrop').classList.remove('open');
+    beginNewGame(); render(); toast('新游戏已开始');
+  }
   function addFood(type=randomKind(),level=1,chain=vegetableByType[type]!==undefined || meatByType[type]!==undefined,category=meatByType[type]?'meat':'vegetable'){ const i=state.cells.findIndex((cell,index)=>cell===null && index!==state.bagIndex && index!==state.meatBagIndex && index!==state.potIndex); if(i<0)return null; state.cells[i]=chain?chainFood(type,level,category):{type,level}; return i; }
   function discoveryKey(food){ return food.category==='fusion'?`fusion:${canonicalFusionRecipe(food.recipe)}:${food.level}`:`${food.type}:${food.level}`; }
   function discover(food){ state.discovered[discoveryKey(food)]=true; }
+  function saveState(){
+    if(!state)return;
+    const snapshot={schema:SAVE_SCHEMA,version:GAME_VERSION,day:state.day,coins:state.coins,bags:state.bags,opened:state.opened,meatBags:state.meatBags,meatOpened:state.meatOpened,bagIndex:state.bagIndex,meatBagIndex:state.meatBagIndex,potIndex:state.potIndex,potContents:state.potContents,cells:state.cells,order:state.order,discovered:state.discovered,unlockedLevels:state.unlockedLevels};
+    try{localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot));}catch(error){}
+  }
+  function validFood(food){
+    if(!food || typeof food!=='object' || !Number.isInteger(food.level))return false;
+    if(food.category==='fusion')return Number.isInteger(food.level) && Boolean(potById[canonicalFusionRecipe(food.recipe)]) && potById[canonicalFusionRecipe(food.recipe)].level===food.level;
+    if(food.chain && ['vegetable','meat'].includes(food.category))return Boolean(routeForCategory(food.category).find(item=>item.type===food.type && item.level===food.level));
+    return Boolean(kinds[food.type] && Number.isInteger(food.level) && food.level>=1 && food.level<=kinds[food.type].maxLevel);
+  }
+  function validOrder(order,saved){
+    if(!validFood(order) || !Number.isFinite(order.reward))return false;
+    if(order.chain && order.level>saved.unlockedLevels[order.category])return false;
+    return Boolean(saved.discovered[discoveryKey(order)]);
+  }
+  function validSavedState(saved){
+    if(!saved || saved.schema!==SAVE_SCHEMA || saved.version!==GAME_VERSION || !Array.isArray(saved.cells) || saved.cells.length!==56)return false;
+    if(!saved.unlockedLevels || !Number.isInteger(saved.unlockedLevels.vegetable) || !Number.isInteger(saved.unlockedLevels.meat))return false;
+    if(saved.unlockedLevels.vegetable<3 || saved.unlockedLevels.vegetable>vegetableRoute.length || saved.unlockedLevels.meat<3 || saved.unlockedLevels.meat>meatRoute.length)return false;
+    if(!saved.discovered || typeof saved.discovered!=='object' || Array.isArray(saved.discovered) || saved.discovered['cabbage:1']!==true || !Array.isArray(saved.potContents) || saved.potContents.length>3)return false;
+    if(!Number.isInteger(saved.day) || saved.day<1 || !Number.isInteger(saved.coins) || saved.coins<0)return false;
+    if(!Number.isInteger(saved.bags) || saved.bags<0 || saved.bags>1000 || !Number.isInteger(saved.opened) || saved.opened<0 || saved.opened>1000 || saved.bags+saved.opened!==1000)return false;
+    if(!Number.isInteger(saved.meatBags) || saved.meatBags<0 || saved.meatBags>1000 || !Number.isInteger(saved.meatOpened) || saved.meatOpened<0 || saved.meatOpened>1000 || saved.meatBags+saved.meatOpened!==1000)return false;
+    if(saved.bagIndex!==0 || saved.meatBagIndex!==1 || saved.potIndex!==2)return false;
+    if(saved.cells[0]?.kind!=='bag' || saved.cells[0]?.category!=='vegetable' || saved.cells[1]?.kind!=='bag' || saved.cells[1]?.category!=='meat' || saved.cells[2]?.kind!=='pot')return false;
+    if(saved.cells.some((food,index)=>index<3?false:food!==null && (!validFood(food) || (food.chain && food.level>saved.unlockedLevels[food.category]))) || saved.potContents.some(food=>!validFood(food) || (food.chain && food.level>saved.unlockedLevels[food.category])))return false;
+    return !saved.order || validFood(saved.order);
+  }
+  function loadGame(){
+    let saved=null;
+    try{saved=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');}catch(error){saved=null;}
+    if(validSavedState(saved)){
+      state={...saved,potOpen:false,shopOpen:false,potContents:saved.potContents.slice(),cells:saved.cells.slice(),order:validOrder(saved.order,saved)?{...saved.order,reward:orderReward(saved.order.level)}:null};
+      if(!state.order)state.order=newOrder();
+      state.cells.forEach(food=>{if(food && food.chain)discover(food);});
+      state.potContents.forEach(food=>{if(food && food.chain)discover(food);});
+      render();
+      return true;
+    }
+    beginNewGame(); render(); return false;
+  }
   function openBag(category){ const isMeat=category==='meat'; const count=isMeat?state.meatBags:state.bags; if(!count)return toast(`${isMeat?'肉类':'蔬菜'}包用完啦`); const i=isMeat?addFood('chicken-leg',1,true,'meat'):addFood('cabbage',1,true,'vegetable'); if(i===null)return toast('棋盘已满，请先整理出空位'); if(isMeat){state.meatBags--;state.meatOpened++;}else{state.bags--;state.opened++;} discover(state.cells[i]); toast(`打开${isMeat?'肉类':'蔬菜'}包，获得 ${foodName(state.cells[i])}`); render(); }
   function toast(msg){ $('message').textContent=msg; const el=$('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>el.classList.remove('show'),1400); }
   function render(){
@@ -272,10 +425,10 @@
       if(food?.kind==='bag'){ const isMeat=food.category==='meat'; const count=isMeat?state.meatBags:state.bags; const blocked=!count || !boardHasSpace; cell.title=!boardHasSpace?'棋盘已满，暂不能开包':count ? `${isMeat?'肉类':'蔬菜'}包，剩余 ${count} 次` : '开包次数已用完'; cell.setAttribute('aria-label',cell.title); cell.setAttribute('aria-disabled',blocked?'true':'false'); cell.innerHTML=`<img src="assets/${isMeat?'meat-bag-v1':'vegetable-bag-v2'}.png" alt="${isMeat?'肉类':'蔬菜'}包"><b class="bag-uses">${count}</b>`; if(!count)cell.classList.add('empty'); if(blocked)cell.classList.add('blocked'); }
       else if(food){ discover(food); cell.title=foodName(food); cell.setAttribute('aria-label',foodName(food)); cell.innerHTML=`<img src="${assetFor(food,food.level)}" alt="${foodName(food)}">`; }
       board.appendChild(cell);
-    }); renderCatalog(); renderCookingCatalog(); if(state.potOpen) renderPotPanel();
+    }); renderCatalog(); renderCookingCatalog(); renderShop(); if(state.potOpen) renderPotPanel(); saveState();
   }
   function mergeErrorV2(from,to){ const a=state.cells[from], b=state.cells[to]; if(from===state.potIndex || to===state.potIndex)return '请点击烹饪锅选择食材'; if(a?.kind==='bag' || b?.kind==='bag')return '食材包不能参与合成'; if(!a || !b)return '这个位置不能合成'; if(a.category==='fusion' || b.category==='fusion')return '料理请放入烹饪锅继续制作'; if(a.chain || b.chain){ if(a.chain && b.chain && a.category===b.category && a.type===b.type && a.level===b.level){ const route=a.category==='meat'?meatRoute:vegetableRoute; return a.level<route.length?`可以合成为 Lv.${a.level+1} ${route[a.level].name}`:`Lv.${route.length} 已是最高等级`; } if(a.chain && b.chain && a.category!==b.category)return '蔬菜和肉类请放入烹饪锅'; return '需要两个相同等级的同类食材'; } const aKind=kinds[a.type], bKind=kinds[b.type]; if(aKind && bKind && a.level===3 && b.level===3 && aKind.category!==bKind.category)return '蔬菜和肉类请放入烹饪锅'; if(a.type!==b.type)return `只能合成相同食材：${foodName(a)} 与 ${foodName(b)} 不同`; if(a.level!==b.level)return '只能合成相同等级的料理'; return `Lv.${aKind.maxLevel} 已是最高等级`; }
-  function merge(from,to){ const a=state.cells[from], b=state.cells[to]; if(!a || from===to || a.kind==='bag' || a.kind==='pot' || from===state.potIndex || to===state.potIndex || to===state.bagIndex || to===state.meatBagIndex)return 'invalid'; if(!b){state.cells[to]=a;state.cells[from]=null;return 'moved';} if(a.chain && b.chain && a.category===b.category){ if(a.type!==b.type || a.level!==b.level)return 'invalid'; const chainTypes=a.category==='meat'?['chicken-leg','bacon','meatballs','thick-steak','ribs','pork-chop','roast-roll','bone-steak','pork-belly','roasted-ribs','meat-feast']:['cabbage','tomato','pepper','carrot','mushroom','corn','potato','purple-cabbage']; const nextType=chainTypes[a.level]; if(!nextType)return 'invalid'; state.cells[to]={category:a.category,chain:true,type:nextType,level:a.level+1};state.cells[from]=null;discover(state.cells[to]);return 'merged'; } if(a.category==='fusion' || b.category==='fusion')return 'invalid'; const aKind=kinds[a.type], bKind=kinds[b.type]; if(aKind && bKind && a.type===b.type && a.level===b.level && a.level<aKind.maxLevel){state.cells[to]={type:a.type,level:a.level+1};state.cells[from]=null;discover(state.cells[to]);return 'merged';} return 'invalid'; }
+  function merge(from,to){ const a=state.cells[from], b=state.cells[to]; if(!a || from===to || a.kind==='bag' || a.kind==='pot' || from===state.potIndex || to===state.potIndex || to===state.bagIndex || to===state.meatBagIndex)return 'invalid'; if(!b){state.cells[to]=a;state.cells[from]=null;return 'moved';} if(a.chain && b.chain && a.category===b.category){ if(a.type!==b.type || a.level!==b.level)return 'invalid'; const chainTypes=a.category==='meat'?['chicken-leg','bacon','meatballs','thick-steak','ribs','pork-chop','roast-roll','bone-steak','pork-belly','roasted-ribs','meat-feast']:['cabbage','tomato','pepper','carrot','mushroom','corn','potato','purple-cabbage']; const nextType=chainTypes[a.level]; if(!nextType)return 'invalid'; if(state.unlockedLevels && a.level+1>state.unlockedLevels[a.category])return 'locked'; state.cells[to]={category:a.category,chain:true,type:nextType,level:a.level+1};state.cells[from]=null;discover(state.cells[to]);if(Number.isFinite(state.coins))state.coins+=mergeReward();return 'merged'; } if(a.category==='fusion' || b.category==='fusion')return 'invalid'; const aKind=kinds[a.type], bKind=kinds[b.type]; if(aKind && bKind && a.type===b.type && a.level===b.level && a.level<aKind.maxLevel){state.cells[to]={type:a.type,level:a.level+1};state.cells[from]=null;discover(state.cells[to]);if(Number.isFinite(state.coins))state.coins+=mergeReward();return 'merged';} return 'invalid'; }
   function openPot(){ state.potOpen=true; render(); $('potBackdrop').classList.add('open'); }
   function closePot(){ state.potOpen=false; $('potBackdrop').classList.remove('open'); render(); }
   function returnPotContents(){
@@ -290,7 +443,7 @@
     const foods=state.potContents.slice(); const route=potRouteForFoods(foods); const preview=$('potPreview'); const cook=$('potCook');
     if(route){ preview.textContent=`${route.name} · Lv.${route.level} · 消耗 ${foods.length} 份食材`; cook.disabled=false; } else if(foods.length<2){ preview.textContent=`已选择 ${foods.length}/3，至少需要 2 份食材`; cook.disabled=true; } else { preview.textContent='当前组合没有对应配方，请换一组食材'; cook.disabled=true; }
   }
-  function cookSelected(){ const result=cookPotContents(); if(result.result==='cooked'){ state.coins+=result.food.level*3; state.potOpen=false; $('potBackdrop').classList.remove('open'); toast(`${result.route.name}出锅！金币 +${result.food.level*3}`); render(); } else toast(result.message); }
+  function cookSelected(){ const result=cookPotContents(); if(result.result==='cooked'){ state.potOpen=false; $('potBackdrop').classList.remove('open'); toast(`${result.route.name}出锅！金币 +${cookingReward(result.food)}`); render(); } else toast(result.message); }
   function renderCookingCatalog(){
     const content=$('catalogContent'); if(!content)return;
     const itemForRoute=route=>{ const unlocked=state.discovered[`fusion:${canonicalFusionRecipe(route.id)}:${route.level}`]; return `<article class="catalog-item${unlocked?'':' locked'}" data-recipe="${route.id}"><img src="${route.asset}" alt="${unlocked?route.name:'未解锁料理'}"><span class="catalog-level">Lv.${route.level}${unlocked?'':' 🔒'}</span><span class="catalog-name">${route.name}</span><small class="catalog-recipe">${fusionIngredientLabel(route)} · ${route.slots}槽配方</small></article>`; };
@@ -298,22 +451,26 @@
     content.insertAdjacentHTML('beforeend',`<section class="catalog-group catalog-cooking"><h3 class="catalog-section-title">烹饪锅料理 · 手绘料理图鉴</h3><div class="catalog-title">🍲 拖入 2～3 份食材 → 点击锅 → 开火出锅</div>${groups}</section>`);
   }
   function mergeError(from,to){ const a=state.cells[from], b=state.cells[to]; if(a?.kind==='bag' || b?.kind==='bag')return '食材包不能参与合成'; if(!a || !b)return '这个位置不能合成'; if(a.chain || b.chain){ if(a.chain && b.chain && a.category===b.category && a.type===b.type && a.level===b.level){ const route=a.category==='meat'?meatRoute:vegetableRoute; return a.level<route.length?`可以合成为 Lv.${a.level+1} ${route[a.level].name}`:`Lv.${route.length} 已是最高等级`; } return a.chain && b.chain?'需要两个相同等级的同类食材':'蔬菜和肉类路线不能混合合成'; } if(a.category==='fusion' || b.category==='fusion'){ if(a.category!=='fusion' || b.category!=='fusion')return '组合料理只能与组合料理合成'; if(a.level===5 || b.level===5)return 'Lv.5 已是最高料理等级'; if(a.level!==b.level)return '只能合成相同等级的组合料理'; const aRecipe=canonicalFusionRecipe(a.recipe), bRecipe=canonicalFusionRecipe(b.recipe); if(aRecipe===bRecipe)return '需要两个不同的 Lv.4 料理'; return fusionLv5ById[canonicalFusionRecipe(`${aRecipe}|${bRecipe}`)]?'可以合成指定的 Lv.5 料理':'这个 Lv.4 组合没有对应的 Lv.5 配方'; } const aKind=kinds[a.type], bKind=kinds[b.type]; if(a.level===3 && b.level===3 && aKind.category!==bKind.category){ const vegetable=aKind.category==='vegetable'?a.type:b.type; const meat=aKind.category==='meat'?a.type:b.type; return fusionLv4ById[`${vegetable}+${meat}`]?'可以合成指定的 Lv.4 料理':'这个蔬菜和肉类组合暂未收录'; } if(a.type!==b.type)return `只能合成相同食材：${foodName(a)} 与 ${foodName(b)} 不同`; if(a.level!==b.level)return '只能合成相同等级的料理'; return `Lv.${aKind.maxLevel} 已是最高料理等级`; }
-  function renderCatalog(){ const content=$('catalogContent'); if(!content)return; const renderRoute=(title,items)=>`<section class="catalog-group"><div class="catalog-title">${title}</div><div class="catalog-levels">${items}</div></section>`; const vegetableItems=vegetableRoute.map(item=>{ const unlocked=state.discovered[`${item.type}:${item.level}`]; return `<article class="catalog-item${unlocked?'':' locked'}"><img src="${vegetableAssetPrefix}/${item.type}.png" alt="${unlocked?item.name:'未解锁蔬菜'}"><span class="catalog-level">Lv.${item.level}${unlocked?'':' 🔒'}</span><span class="catalog-name">${item.name}</span></article>`; }).join(''); const vegetableSection=`<h3 class="catalog-section-title">8级蔬菜合成路线</h3>${renderRoute('🥬 两份同级蔬菜 → 下一种蔬菜',vegetableItems)}`; const meatItems=meatRoute.map(item=>{ const unlocked=state.discovered[`${item.type}:${item.level}`]; return `<article class="catalog-item${unlocked?'':' locked'}"><img src="${meatAssetPrefix}/${item.type}.png" alt="${unlocked?item.name:'未解锁肉类'}"><span class="catalog-level">Lv.${item.level}${unlocked?'':' 🔒'}</span><span class="catalog-name">${item.name}</span></article>`; }).join(''); const meatSection=`<h3 class="catalog-section-title">11级肉类合成路线</h3>${renderRoute('🥩 两份同级肉类 → 下一种肉类',meatItems)}`; content.innerHTML=vegetableSection+meatSection; }
+  function renderCatalog(){ const content=$('catalogContent'); if(!content)return; const renderRoute=(title,items)=>`<section class="catalog-group"><div class="catalog-title">${title}</div><div class="catalog-levels">${items}</div></section>`; const routeCards=(category,route)=>route.map(item=>{ const unlocked=isRouteLevelUnlocked(category,item.level), discovered=Boolean(state.discovered[`${item.type}:${item.level}`]); const status=!unlocked?'未解锁':discovered?item.name:'已解锁 · 未发现'; const image=category==='meat'?meatAssetPrefix:vegetableAssetPrefix; return `<article class="catalog-item${unlocked&&discovered?'':' locked'}"><img src="${image}/${item.type}.png" alt="${status}"><span class="catalog-level">Lv.${item.level} · ${!unlocked?'🔒 未解锁':discovered?'已发现':'未发现'}</span><span class="catalog-name">${status}</span></article>`; }).join(''); const vegetableSection=`<h3 class="catalog-section-title">8级蔬菜合成路线</h3>${renderRoute('🥬 两份同级蔬菜 → 下一种蔬菜',routeCards('vegetable',vegetableRoute))}`; const meatSection=`<h3 class="catalog-section-title">11级肉类合成路线</h3>${renderRoute('🥩 两份同级肉类 → 下一种肉类',routeCards('meat',meatRoute))}`; content.innerHTML=vegetableSection+meatSection; }
   $('board').addEventListener('click',e=>{ const cell=e.target.closest('.cell'); if(!cell)return; const index=Number(cell.dataset.index); const food=state.cells[index]; if(index===state.potIndex){openPot();return;} const bag=e.target.closest('.bag-cell'); if(bag)openBag(food.category); });
   $('potClose').addEventListener('click',closePot);
   $('potClear').addEventListener('click',()=>{ const result=returnPotContents(); if(result.result==='returned'){toast('食材已取出');render();} else if(result.result==='full')toast(result.message); });
   $('potCook').addEventListener('click',cookSelected);
   $('potBackdrop').addEventListener('click',e=>{ if(e.target===$('potBackdrop'))closePot(); });
   $('reset').addEventListener('click',reset);
+  $('shopOpen').addEventListener('click',()=>{renderShop();state.shopOpen=true;$('shopBackdrop').classList.add('open');});
+  $('shopClose').addEventListener('click',()=>{state.shopOpen=false;$('shopBackdrop').classList.remove('open');});
+  $('shopBackdrop').addEventListener('click',e=>{if(e.target===$('shopBackdrop')){$('shopBackdrop').classList.remove('open');state.shopOpen=false;}});
+  $('shopContent').addEventListener('click',e=>{const button=e.target.closest('button[data-category]');if(button)buyIngredient(button.dataset.category,Number(button.dataset.level));});
   $('catalogOpen').addEventListener('click',()=>{ renderCatalog(); renderCookingCatalog(); $('catalogBackdrop').classList.add('open'); $('catalogContent').scrollTop=0; $('catalogContent').scrollLeft=0; });
   $('catalogClose').addEventListener('click',()=>$('catalogBackdrop').classList.remove('open'));
   $('catalogBackdrop').addEventListener('click',e=>{ if(e.target===$('catalogBackdrop'))$('catalogBackdrop').classList.remove('open'); });
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ $('catalogBackdrop').classList.remove('open'); if(state.potOpen)closePot(); } });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ $('catalogBackdrop').classList.remove('open'); $('shopBackdrop').classList.remove('open'); state.shopOpen=false; if(state.potOpen)closePot(); } });
   let drag=null;
   $('board').addEventListener('pointerdown',e=>{ if(state.potOpen)return; const cell=e.target.closest('.cell.food'); if(!cell)return; drag=Number(cell.dataset.index); cell.setPointerCapture?.(e.pointerId); cell.classList.add('dragging'); });
-  $('board').addEventListener('pointerup',e=>{ if(state.potOpen){drag=null;return;} if(drag===null)return; const from=drag; drag=null; document.querySelectorAll('.dragging').forEach(x=>x.classList.remove('dragging')); const hit= document.elementFromPoint(e.clientX,e.clientY); const cell=hit?.closest?.('.cell'); if(!cell || !$('board').contains(cell))return render(); const target=Number(cell.dataset.index); if(target===state.potIndex){ const result=moveToPot(from); if(result.result==='moved')toast(`${foodName(result.food)}已加入烹饪锅`); else toast(result.message); render(); return; } const result=merge(from,target); if(result==='merged'){state.coins+=3;const resultFood=state.cells[target];toast(`${foodName(resultFood)}合成成功！金币 +3`);}else if(result==='moved')toast('摆放完成');else toast(mergeErrorV2(from,target));render(); });
+  $('board').addEventListener('pointerup',e=>{ if(state.potOpen){drag=null;return;} if(drag===null)return; const from=drag; drag=null; document.querySelectorAll('.dragging').forEach(x=>x.classList.remove('dragging')); const hit=document.elementFromPoint(e.clientX,e.clientY); if(hit?.closest?.('#orderCard')){submitOrder(from);return;} const cell=hit?.closest?.('.cell'); if(!cell || !$('board').contains(cell))return render(); const target=Number(cell.dataset.index); if(target===state.potIndex){ const result=moveToPot(from); if(result.result==='moved')toast(`${foodName(result.food)}已加入烹饪锅`); else toast(result.message); render(); return; } const result=merge(from,target); if(result==='merged')toast(`${foodName(state.cells[target])}合成成功！金币 +${mergeReward()}`);else if(result==='locked')toast('请先在商店解锁下一级食材');else if(result==='moved')toast('摆放完成');else toast(mergeErrorV2(from,target));render(); });
   $('board').addEventListener('pointercancel',()=>{ drag=null; document.querySelectorAll('.dragging').forEach(x=>x.classList.remove('dragging')); });
-  reset();
+  loadGame();
 })();
 </script>
 </body></html>
