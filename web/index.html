@@ -53,9 +53,9 @@
     #message { flex:1; }
     #reset, #catalogOpen { padding:8px 9px; background:#ffdfad; border:1px solid var(--orange); border-radius:11px; color:var(--dark); font-size:12px; }
     #catalogOpen { background:#e2f3f5; border-color:#70aeb8; }
-    .catalog-backdrop { position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center; padding:14px; background:rgba(45,53,45,.45); touch-action:pan-y; }
+    .catalog-backdrop { position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center; padding:14px; overflow:hidden; background:rgba(45,53,45,.45); touch-action:pan-y; }
     .catalog-backdrop.open { display:flex; }
-    .catalog { width:min(650px, calc(100vw - 32px)); max-width:100%; min-width:0; height:min(80dvh, 760px); max-height:calc(100dvh - 28px); display:flex; flex-direction:column; overflow:hidden; background:#fff9e0; border:3px solid var(--orange); border-radius:22px; padding:16px; box-shadow:0 12px 36px rgba(49,49,37,.25); }
+    .catalog { width:min(480px, calc(100vw - 32px)); max-width:100%; min-width:0; height:min(80vh, 760px); max-height:calc(100vh - 28px); height:min(80dvh, 760px); max-height:calc(100dvh - 28px); display:flex; flex-direction:column; overflow:hidden; background:#fff9e0; border:3px solid var(--orange); border-radius:22px; padding:16px; box-shadow:0 12px 36px rgba(49,49,37,.25); }
     .catalog-head { position:sticky; top:0; z-index:2; flex:0 0 auto; display:flex; align-items:center; gap:10px; margin-bottom:12px; padding-bottom:4px; background:var(--panel); }
     .catalog-head h2 { margin:0; color:var(--dark); font-size:20px; }
     .catalog-close { margin-left:auto; width:34px; height:34px; border-radius:50%; background:#ffdfad; border:1px solid var(--orange); font-size:20px; line-height:1; }
@@ -95,7 +95,7 @@
     #potCook:disabled { background:#d8c9ae; color:#9e927d; cursor:not-allowed; }
     #potClear { background:#e2f3f5; border:1px solid #70aeb8; color:#356d76; }
     .catalog-cooking .catalog-title { color:#b9652c; }
-    @media (max-width:600px) { .catalog-backdrop { padding:10px; } .catalog { width:calc(100vw - 20px); height:min(78dvh, 680px); max-height:calc(100dvh - 20px); } }
+    @media (max-width:600px) { .catalog-backdrop { padding:10px; } .catalog { width:calc(100vw - 20px); height:min(78vh, 680px); max-height:calc(100vh - 20px); height:min(78dvh, 680px); max-height:calc(100dvh - 20px); } }
     @media (max-width:420px) { #app { padding-left:8px; padding-right:8px; } .hud { gap:4px; padding-left:7px; padding-right:7px; font-size:12px; } .bag-progress { padding:6px 5px; } .catalog { padding:12px 10px; border-radius:18px; } .catalog-item { font-size:9px; } }
     .toast { position:fixed; left:50%; top:82px; transform:translateX(-50%); padding:10px 16px; color:#fff; background:rgba(69,58,48,.9); border-radius:20px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .18s; z-index:5; }
     .toast.show { opacity:1; }
@@ -305,7 +305,7 @@
   $('potCook').addEventListener('click',cookSelected);
   $('potBackdrop').addEventListener('click',e=>{ if(e.target===$('potBackdrop'))closePot(); });
   $('reset').addEventListener('click',reset);
-  $('catalogOpen').addEventListener('click',()=>{ renderCatalog(); renderCookingCatalog(); $('catalogBackdrop').classList.add('open'); });
+  $('catalogOpen').addEventListener('click',()=>{ renderCatalog(); renderCookingCatalog(); $('catalogBackdrop').classList.add('open'); $('catalogContent').scrollTop=0; $('catalogContent').scrollLeft=0; });
   $('catalogClose').addEventListener('click',()=>$('catalogBackdrop').classList.remove('open'));
   $('catalogBackdrop').addEventListener('click',e=>{ if(e.target===$('catalogBackdrop'))$('catalogBackdrop').classList.remove('open'); });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ $('catalogBackdrop').classList.remove('open'); if(state.potOpen)closePot(); } });
