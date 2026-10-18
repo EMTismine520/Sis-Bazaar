@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#d6efe0">
+  <title>肥鹅小厨房</title>
+  <style>
+    :root { --bg:#d6efe0; --panel:#fff9e0; --blue:#e2f3f5; --ink:#453a30; --muted:#6f6756; --orange:#e07e30; --dark:#a04e22; }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body { margin:0; min-height:100%; background:var(--bg); font-family:"Microsoft YaHei",system-ui,sans-serif; color:var(--ink); overscroll-behavior:none; }
+    body { display:flex; justify-content:center; touch-action:none; }
+    button { font:inherit; color:inherit; border:0; cursor:pointer; }
+    #app { width:min(100vw, 480px); min-height:100dvh; padding:10px 12px calc(14px + env(safe-area-inset-bottom)); position:relative; overflow:hidden; }
+    .hud { height:56px; display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--panel); border:2px solid var(--orange); border-radius:18px; font-size:14px; font-weight:700; white-space:nowrap; }
+    .hud .day { color:var(--dark); margin-right:auto; }
+    .hud .resource { padding:7px 5px; }
+    .bag-progress { display:inline-flex; align-items:center; gap:4px; background:#ffe5ac; border:1px solid var(--orange); border-radius:12px; padding:7px 8px; font-weight:800; }
+    .bag-progress.meat { background:#f5d6c5; border-color:#c76b4c; }
+    .scene { height:150px; position:relative; padding:22px 6px 0; }
+    .scene:before,.scene:after { content:""; position:absolute; border-radius:50%; background:#c4e5cf; z-index:-1; }
+    .scene:before { width:110px; height:70px; left:10px; bottom:14px; }
+    .scene:after { width:110px; height:100px; right:-14px; top:20px; }
+    .scene h1 { font-size:24px; margin:0 0 8px; color:var(--dark); }
+    .scene p { margin:0; color:var(--muted); font-size:13px; }
+    .goose { position:absolute; left:42px; bottom:10px; font-size:58px; filter:drop-shadow(0 4px 0 rgba(160,78,34,.15)); }
+    .order { position:absolute; right:0; top:20px; width:164px; min-height:92px; padding:10px 12px; background:var(--panel); border:2px solid var(--orange); border-radius:16px; box-shadow:0 4px 0 rgba(160,78,34,.1); }
+    .order .caption { color:var(--dark); font-size:12px; font-weight:800; }
+    .order .target { margin-top:8px; font-size:16px; font-weight:800; }
+    .order .reward { margin-top:7px; font-size:11px; color:var(--muted); }
+    .board { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; padding:7px; background:var(--blue); border:3px solid #70aeb8; border-radius:18px; }
+    .cell { min-width:0; aspect-ratio:1; display:flex; align-items:center; justify-content:center; position:relative; background:#ebf4ef; border-radius:10px; user-select:none; }
+    .cell.food { background:rgba(255,255,255,.18); overflow:hidden; transition:transform .12s, filter .12s; }
+    .cell.food:hover { transform:translateY(-3px) scale(1.04); filter:drop-shadow(0 5px 3px rgba(77,60,44,.22)); }
+    .cell.food.dragging { opacity:.3; }
+    .cell.food img { width:108%; height:108%; object-fit:contain; pointer-events:none; filter:blur(.2px) drop-shadow(0 2px 3px rgba(77,60,44,.14)); }
+    .cell.bag-cell { flex-direction:column; gap:1px; background:rgba(255,241,201,.58); cursor:pointer; transition:transform .12s, filter .12s; }
+    .cell.bag-cell:hover { transform:translateY(-2px) rotate(-1deg); filter:drop-shadow(0 5px 3px rgba(181,101,24,.25)); }
+    .cell.bag-cell:active { transform:scale(.95); }
+    .cell.bag-cell.blocked { cursor:not-allowed; opacity:.48; filter:grayscale(.75); pointer-events:none; }
+    .cell.bag-cell img { width:86%; height:86%; object-fit:contain; pointer-events:none; filter:drop-shadow(0 4px 2px rgba(181,101,24,.22)); }
+    .cell.bag-cell .bag-uses { position:absolute; top:3px; right:4px; min-width:18px; padding:2px 4px; border-radius:8px; background:#e07e30; color:white; font-size:10px; line-height:1; }
+    .cell.bag-cell.empty { filter:grayscale(.65); opacity:.65; }
+    .cell.meat-bag-cell { background:rgba(248,216,202,.62); }
+    .cell.meat-bag-cell:hover { filter:drop-shadow(0 5px 3px rgba(199,107,76,.28)); }
+    .cell.pot-cell { background:rgba(255,224,166,.7); border:2px solid #e39a43; cursor:pointer; }
+    .cell.pot-cell:hover { transform:translateY(-2px) scale(1.03); filter:drop-shadow(0 5px 3px rgba(181,101,24,.25)); }
+    .cell.pot-cell.ready { background:rgba(255,194,91,.82); }
+    .cell.pot-cell img { width:92%; height:92%; }
+    .cell.pot-cell .pot-count { position:absolute; top:3px; right:3px; min-width:20px; padding:2px 4px; border-radius:8px; background:#d86e2f; color:white; font-size:9px; line-height:1; white-space:nowrap; }
+    .cell.food.selected { outline:3px solid #e39a43; outline-offset:-3px; filter:drop-shadow(0 5px 3px rgba(181,101,24,.28)); }
+    .footer { display:flex; gap:8px; align-items:center; margin-top:12px; padding:8px 10px; min-height:52px; background:var(--panel); border:2px solid var(--orange); border-radius:15px; font-size:12px; }
+    #message { flex:1; }
+    #reset, #catalogOpen { padding:8px 9px; background:#ffdfad; border:1px solid var(--orange); border-radius:11px; color:var(--dark); font-size:12px; }
+    #catalogOpen { background:#e2f3f5; border-color:#70aeb8; }
+    .catalog-backdrop { position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center; padding:14px; background:rgba(45,53,45,.45); }
+    .catalog-backdrop.open { display:flex; }
+    .catalog { width:min(100%, 650px); max-height:min(88dvh, 760px); overflow:auto; background:#fff9e0; border:3px solid var(--orange); border-radius:22px; padding:16px; box-shadow:0 12px 36px rgba(49,49,37,.25); }
+    .catalog-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+    .catalog-head h2 { margin:0; color:var(--dark); font-size:20px; }
+    .catalog-close { margin-left:auto; width:34px; height:34px; border-radius:50%; background:#ffdfad; border:1px solid var(--orange); font-size:20px; line-height:1; }
+    .catalog-group { padding:11px 0 13px; border-top:1px dashed #d6b77b; }
+    .catalog-group:first-of-type { border-top:0; }
+    .catalog-section-title { margin:8px 0 2px; color:var(--dark); font-size:14px; }
+    .catalog-title { display:flex; align-items:center; gap:6px; margin-bottom:8px; color:var(--dark); font-weight:900; }
+    .catalog-title .seed { font-size:22px; }
+    .catalog-levels { display:grid; grid-template-columns:repeat(auto-fit,minmax(72px,1fr)); gap:5px; }
+    .catalog-item { min-width:0; text-align:center; font-size:10px; color:var(--muted); }
+    .catalog-item img { width:100%; aspect-ratio:1; object-fit:contain; filter:drop-shadow(0 3px 2px rgba(77,60,44,.16)); }
+    .catalog-item.locked img { opacity:.2; filter:grayscale(1); }
+    .catalog-item .catalog-level { display:block; color:var(--dark); font-weight:900; }
+    .catalog-item .catalog-name { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .catalog-item .catalog-recipe { display:block; min-height:24px; margin-top:2px; color:var(--muted); font-size:9px; line-height:1.25; overflow-wrap:anywhere; }
+    .catalog-cooking .catalog-levels { grid-template-columns:repeat(auto-fit,minmax(96px,1fr)); gap:7px; }
+    .catalog-cooking .catalog-item { padding:4px 3px 5px; border:1px solid #ecd1a1; border-radius:10px; background:#fff4d8; }
+    .catalog-cooking .catalog-item.locked { background:#f8eed8; }
+    .pot-backdrop { position:fixed; inset:0; z-index:12; display:none; align-items:flex-end; justify-content:center; padding:12px; background:rgba(45,53,45,.42); }
+    .pot-backdrop.open { display:flex; }
+    .pot-panel { width:min(100%, 480px); max-height:min(82dvh, 640px); overflow:auto; padding:16px; background:#fff9e0; border:3px solid #e39a43; border-radius:24px 24px 16px 16px; box-shadow:0 -8px 32px rgba(49,49,37,.25); }
+    .pot-head { display:flex; align-items:center; gap:10px; }
+    .pot-head img { width:54px; height:54px; object-fit:contain; }
+    .pot-head h2 { margin:0; color:var(--dark); font-size:20px; }
+    .pot-head p { margin:3px 0 0; color:var(--muted); font-size:12px; }
+    .pot-close { margin-left:auto; width:34px; height:34px; border-radius:50%; background:#ffdfad; border:1px solid var(--orange); font-size:20px; line-height:1; }
+    .pot-slots { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:14px 0 10px; }
+    .pot-slot { min-height:86px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; background:#f8e7bd; border:2px dashed #d8aa62; border-radius:14px; color:#ae8b55; font-size:11px; }
+    .pot-slot.filled { border-style:solid; color:var(--dark); background:#fff1ce; }
+    .pot-slot img { width:52px; height:52px; object-fit:contain; }
+    .pot-slot b { font-size:11px; }
+    .pot-preview { min-height:52px; padding:9px 11px; background:#f6edd4; border-radius:12px; color:var(--dark); font-size:12px; }
+    .pot-actions { display:flex; gap:8px; margin-top:12px; }
+    .pot-actions button { flex:1; min-height:42px; border-radius:12px; font-weight:800; }
+    #potCook { background:#e07e30; color:white; }
+    #potCook:disabled { background:#d8c9ae; color:#9e927d; cursor:not-allowed; }
+    #potClear { background:#e2f3f5; border:1px solid #70aeb8; color:#356d76; }
+    .catalog-cooking .catalog-title { color:#b9652c; }
+    @media (max-width:420px) { #app { padding-left:8px; padding-right:8px; } .hud { gap:4px; padding-left:7px; padding-right:7px; font-size:12px; } .bag-progress { padding:6px 5px; } .catalog { padding:12px 10px; border-radius:18px; } .catalog-item { font-size:9px; } }
+    .toast { position:fixed; left:50%; top:82px; transform:translateX(-50%); padding:10px 16px; color:#fff; background:rgba(69,58,48,.9); border-radius:20px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .18s; z-index:5; }
+    .toast.show { opacity:1; }
+    @media (min-width:600px) { #app { padding-top:20px; } }
+  </style>
+</head>
+<body>
+<main id="app">
+  <header class="hud"><span class="day" id="day">第 1 天</span><span class="resource" id="coins">🪙 120</span><span class="resource">💎 3</span><span class="bag-progress" aria-label="蔬菜包开启进度">🥬 <b id="openedCount">0</b>/100</span><span class="bag-progress meat" aria-label="肉类包开启进度">🥩 <b id="meatOpenedCount">0</b>/100</span></header>
+  <section class="scene"><h1>肥鹅小厨房</h1><p>今天也要做出好吃的料理！</p><div class="goose">🪿</div><div class="order"><div class="caption">今日订单</div><div class="target" id="orderTarget"></div><div class="reward" id="orderReward"></div></div></section>
+  <section class="board" id="board" aria-label="合成棋盘"></section>
+  <footer class="footer"><span id="message">拖动相同食材进行合成</span><button id="catalogOpen" aria-label="打开料理图鉴">📖 图鉴</button><button id="reset">重新开始</button></footer>
+</main>
+<div id="toast" class="toast"></div>
+<div class="catalog-backdrop" id="catalogBackdrop" role="dialog" aria-modal="true" aria-labelledby="catalogTitle">
+  <section class="catalog">
+    <header class="catalog-head"><h2 id="catalogTitle">料理图鉴</h2><button class="catalog-close" id="catalogClose" aria-label="关闭料理图鉴">×</button></header>
+    <div id="catalogContent"></div>
+  </section>
+</div>
+<div class="pot-backdrop" id="potBackdrop" role="dialog" aria-modal="true" aria-labelledby="potTitle">
+  <section class="pot-panel">
+    <header class="pot-head">
+      <img src="assets/cooking/cooking-pot.png" alt="烹饪锅">
+      <div><h2 id="potTitle">烹饪锅</h2><p>拖入 2～3 份食材，点击开火完成手绘料理</p></div>
+      <button class="pot-close" id="potClose" aria-label="关闭烹饪锅">×</button>
+    </header>
+    <div class="pot-slots" id="potSlots" aria-label="锅内食材槽位"></div>
+    <div class="pot-preview" id="potPreview">把食材拖入锅后即可查看料理路线</div>
+    <div class="pot-actions"><button id="potClear">取出食材</button><button id="potCook" disabled>开火</button></div>
+  </section>
+</div>
+<script>
+(() => {
+  const kinds = {
+    cabbage:{category:'vegetable',name:'包菜',emoji:'🥬',levels:['包菜','包菜沙拉','包菜卷'],maxLevel:3,assetPrefix:'foods'},
+    carrot:{category:'vegetable',name:'胡萝卜',emoji:'🥕',levels:['胡萝卜','胡萝卜沙拉','胡萝卜浓汤'],maxLevel:3,assetPrefix:'foods'},
+    tomato:{category:'vegetable',name:'番茄',emoji:'🍅',levels:['番茄','番茄沙拉','番茄意面'],maxLevel:3,assetPrefix:'foods'},
+    pepper:{category:'vegetable',name:'彩椒',emoji:'🫑',levels:['彩椒','彩椒拼盘','彩椒炒饭'],maxLevel:3,assetPrefix:'foods'},
+    corn:{category:'vegetable',name:'玉米',emoji:'🌽',levels:['玉米','玉米杯','玉米浓汤'],maxLevel:3,assetPrefix:'foods'},
+    chicken:{category:'meat',name:'鸡肉',emoji:'🍗',levels:['鸡肉','炸鸡块','鸡肉汉堡'],maxLevel:3,assetPrefix:'meats'},
+    beef:{category:'meat',name:'牛肉',emoji:'🥩',levels:['牛肉','牛肉片','牛排'],maxLevel:3,assetPrefix:'meats'},
+    pork:{category:'meat',name:'猪肉',emoji:'🥓',levels:['猪肉','猪肉串','红烧肉'],maxLevel:3,assetPrefix:'meats'},
+    shrimp:{category:'meat',name:'虾',emoji:'🍤',levels:['虾','虾仁','海鲜拼盘'],maxLevel:3,assetPrefix:'meats'}
+  };
+  const vegetableRoute = [
+    {type:'cabbage',name:'包菜',emoji:'🥬',level:1},
+    {type:'tomato',name:'番茄',emoji:'🍅',level:2},
+    {type:'pepper',name:'彩椒',emoji:'🫑',level:3},
+    {type:'carrot',name:'胡萝卜',emoji:'🥕',level:4},
+    {type:'mushroom',name:'香菇',emoji:'🍄',level:5},
+    {type:'corn',name:'玉米',emoji:'🌽',level:6},
+    {type:'potato',name:'土豆',emoji:'🥔',level:7},
+    {type:'purple-cabbage',name:'紫甘蓝',emoji:'🥬',level:8}
+  ];
+  const meatRoute = [
+    {type:'chicken-leg',name:'鸡腿',emoji:'🍗',level:1},
+    {type:'bacon',name:'培根',emoji:'🥓',level:2},
+    {type:'meatballs',name:'肉丸',emoji:'🍖',level:3},
+    {type:'thick-steak',name:'厚切牛排',emoji:'🥩',level:4},
+    {type:'ribs',name:'排骨',emoji:'🍖',level:5},
+    {type:'pork-chop',name:'猪排',emoji:'🥩',level:6},
+    {type:'roast-roll',name:'烤肉卷',emoji:'🍖',level:7},
+    {type:'bone-steak',name:'带骨牛排',emoji:'🥩',level:8},
+    {type:'pork-belly',name:'五花肉',emoji:'🥓',level:9},
+    {type:'roasted-ribs',name:'烤肋排',emoji:'🍖',level:10},
+    {type:'meat-feast',name:'肉类盛宴',emoji:'🍽️',level:11}
+  ];
+  const vegetableByType = Object.fromEntries(vegetableRoute.map(item=>[item.type,item]));
+  const vegetableByLevel = Object.fromEntries(vegetableRoute.map(item=>[item.level,item]));
+  const meatByType = Object.fromEntries(meatRoute.map(item=>[item.type,item]));
+  const meatByLevel = Object.fromEntries(meatRoute.map(item=>[item.level,item]));
+  const vegetableAssetPrefix = 'assets/vegetables-sticker';
+  const meatAssetPrefix = 'assets/meats-sticker';
+  function legacyBagKind(isMeat){ return randomKind(isMeat?meatKeys:vegetableKeys); }
+  let state;
+  const $ = id => document.getElementById(id);
+  const kindKeys = Object.keys(kinds);
+  const vegetableKeys = kindKeys.filter(type=>kinds[type].category==='vegetable');
+  const meatKeys = kindKeys.filter(type=>kinds[type].category==='meat');
+  const fusionLv4Routes = [
+    {id:'cabbage+pork',ingredients:['cabbage','pork'],name:'炭香包菜猪肉卷',asset:'assets/cooking/fusion-pot-lv4-cabbage-pork.png',level:4},
+    {id:'carrot+chicken',ingredients:['carrot','chicken'],name:'胡萝卜鸡腿焗盏',asset:'assets/cooking/fusion-pot-lv4-carrot-chicken.png',level:4},
+    {id:'tomato+beef',ingredients:['tomato','beef'],name:'番茄黑椒牛肉船',asset:'assets/cooking/fusion-pot-lv4-tomato-beef.png',level:4},
+    {id:'pepper+shrimp',ingredients:['pepper','shrimp'],name:'彩椒蒜香虾仁串',asset:'assets/cooking/fusion-pot-lv4-pepper-shrimp.png',level:4},
+    {id:'corn+pork',ingredients:['corn','pork'],name:'玉米培根黄金杯',asset:'assets/cooking/fusion-pot-lv4-corn-pork.png',level:4}
+  ];
+  const fusionLv5Routes = [
+    {id:'cabbage+pork|carrot+chicken',ingredients:['cabbage+pork','carrot+chicken'],name:'翡翠炭香双拼',asset:'assets/cooking/fusion-pot-lv5-cabbage-pork--carrot-chicken.png',level:5},
+    {id:'tomato+beef|pepper+shrimp',ingredients:['tomato+beef','pepper+shrimp'],name:'红金海陆焗盘',asset:'assets/cooking/fusion-pot-lv5-tomato-beef--pepper-shrimp.png',level:5},
+    {id:'corn+pork|carrot+chicken',ingredients:['corn+pork','carrot+chicken'],name:'金玉炭火丰收盘',asset:'assets/cooking/fusion-pot-lv5-corn-pork--carrot-chicken.png',level:5}
+  ];
+  const fusionLv4ById = Object.fromEntries(fusionLv4Routes.map(route=>[route.id,route]));
+  const fusionLv5ById = Object.fromEntries(fusionLv5Routes.map(route=>[route.id,route]));
+  const potLv4Routes = fusionLv4Routes.map(route=>({...route,slots:2}));
+  const potLv5Routes = fusionLv5Routes.map(route=>({...route,slots:2}));
+  const potLv6Routes = [
+    {id:'cabbage+pork|tomato+beef|pepper+shrimp',ingredients:['cabbage+pork','tomato+beef','pepper+shrimp'],name:'三色炭火盛宴',asset:'assets/cooking/fusion-pot-lv6-cabbage-pork--tomato-beef--pepper-shrimp.png',level:6,slots:3},
+    {id:'carrot+chicken|corn+pork|tomato+beef',ingredients:['carrot+chicken','corn+pork','tomato+beef'],name:'金谷海陆铁锅',asset:'assets/cooking/fusion-pot-lv6-carrot-chicken--corn-pork--tomato-beef.png',level:6,slots:3}
+  ];
+  const potRoutes = [...potLv4Routes, ...potLv5Routes, ...potLv6Routes];
+  function fusionParts(recipe){ return String(recipe||'').split('|').filter(Boolean).sort(); }
+  function canonicalFusionRecipe(recipe){ return fusionParts(recipe).join('|'); }
+  const potById = Object.fromEntries(potRoutes.map(route=>[canonicalFusionRecipe(route.id),route]));
+  function fusionRoute(recipe,level){ return potById[canonicalFusionRecipe(recipe)] || (level===4?fusionLv4ById[canonicalFusionRecipe(recipe)]:fusionLv5ById[canonicalFusionRecipe(recipe)]); }
+  function fusionName(recipe,level){ return fusionRoute(recipe,level)?.name || '未收录料理'; }
+  const potIngredientLabels={cabbage:'🥬包菜',carrot:'🥕胡萝卜',tomato:'🍅番茄',pepper:'🫑彩椒',corn:'🌽玉米',chicken:'🍗鸡腿',beef:'🥩牛肉',pork:'🥓培根',shrimp:'🍤虾仁'};
+  function fusionIngredientLabel(route){ return route.ingredients.map(id=>potIngredientLabels[id] || fusionLv4ById[id]?.name || id).join(' + '); }
+  function randomKind(keys=kindKeys){ return keys[Math.floor(Math.random()*keys.length)]; }
+  function isChainFood(food){ return Boolean(food && food.category !== 'fusion' && food.chain); }
+  function routeForCategory(category){ return category==='meat'?meatRoute:vegetableRoute; }
+  function routeItem(type,level,category){ const route=routeForCategory(category); return route.find(item=>item.type===type) || route.find(item=>item.level===level); }
+  function chainFood(type, level, category){ const item=routeItem(type,level,category); return item ? {category,chain:true,type:item.type,level:item.level} : null; }
+  const potVegetableAliases={cabbage:'cabbage',tomato:'tomato',pepper:'pepper',carrot:'carrot',mushroom:'mushroom',corn:'corn',potato:'potato', 'purple-cabbage':'purple-cabbage'};
+  const potMeatAliases={'sausage':'chicken','chicken-leg':'chicken',bacon:'pork',meatballs:'pork','thick-steak':'beef',ribs:'beef','pork-chop':'pork','roast-roll':'pork','bone-steak':'beef','pork-belly':'pork','roasted-ribs':'beef','meat-feast':'pork'};
+  function potIngredientKey(food){
+    if(!food) return '';
+    if(food.category==='fusion') return canonicalFusionRecipe(food.recipe);
+    if(food.chain){
+      if(food.category==='vegetable') return potVegetableAliases[food.type] || '';
+      if(food.category==='meat') return potMeatAliases[food.type] || '';
+      return '';
+    }
+    if(food.level!==3) return '';
+    return food.type;
+  }
+  function potRouteForFoods(foods){
+    const keys=foods.map(potIngredientKey).filter(Boolean).sort();
+    if(keys.length!==foods.length) return null;
+    return potRoutes.find(route=>route.slots===foods.length && route.ingredients.slice().sort().join('|')===keys.join('|')) || null;
+  }
+  function emptyBoardIndex(){ return state.cells.findIndex((cell,index)=>cell===null && index!==state.bagIndex && index!==state.meatBagIndex && index!==state.potIndex); }
+  function moveToPot(index){
+    const food=state.cells[index];
+    if(!Number.isInteger(index) || index<0 || index>=state.cells.length || [state.bagIndex,state.meatBagIndex,state.potIndex].includes(index)) return {result:'invalid',message:'食材包和特殊格不能放入锅中'};
+    if(!food || food.kind==='bag' || food.kind==='pot' || !potIngredientKey(food)) return {result:'invalid',message:'只有可烹饪食材或料理可以放入锅中'};
+    if(state.potContents.length>=3) return {result:'full',message:'烹饪锅最多放入 3 份食材'};
+    state.cells[index]=null;
+    state.potContents.push(food);
+    return {result:'moved',food};
+  }
+  function cookPotContents(){
+    const foods=state.potContents.slice();
+    if(foods.length<2 || foods.length>3) return {result:'invalid',message:'烹饪锅至少需要 2 份食材'};
+    const route=potRouteForFoods(foods);
+    if(!route) return {result:'invalid',message:'这些食材没有对应的锅料理配方'};
+    const destination=emptyBoardIndex();
+    if(destination<0) return {result:'full',message:'棋盘已满，先整理出一个空位'};
+    const food={category:'fusion',recipe:route.id,level:route.level};
+    state.cells[destination]=food;
+    state.potContents=[];
+    discover(food);
+    return {result:'cooked',destination,food,route};
+  }
+  function assetFor(food,level){ if(typeof food==='object' && food.category==='fusion'){ const route=potById[canonicalFusionRecipe(food.recipe)] || fusionRoute(food.recipe,level); return route?.asset || ''; } const type=typeof food==='string'?food:food.type; if(typeof food==='object' && isChainFood(food))return `${food.category==='meat'?meatAssetPrefix:vegetableAssetPrefix}/${type}.png`; return `assets/${kinds[type].assetPrefix}/${type}-lv${level}.png`; }
+  function randomFusionRoute(){ const routes=Math.random()<.5?fusionLv4Routes:fusionLv5Routes; return routes[Math.floor(Math.random()*routes.length)]; }
+  function newOrder(){ if(Math.random()<.2){ const route=randomFusionRoute(); return {category:'fusion',recipe:route.id,level:route.level,reward:16+route.level*8}; } const route=Math.random()<.6?vegetableRoute:meatRoute; const item=route[1+Math.floor(Math.random()*(route.length-1))]; return {category:meatByType[item.type]?'meat':'vegetable',chain:true,type:item.type,level:item.level,reward:16+item.level*8}; }
+  // Legacy weighting reference: Math.random()<.6?randomKind(vegetableKeys):randomKind(meatKeys)
+  // Legacy level reference retained for saved games: kind.maxLevel-1; 特色料理 remains supported.
+  function foodName(food){ return food.category==='fusion'?fusionName(food.recipe,food.level):isChainFood(food)?routeItem(food.type,food.level,food.category).name:kinds[food.type].levels[food.level-1]; }
+  function foodEmoji(food){ return food.category==='fusion'?'🍽️':isChainFood(food)?routeItem(food.type,food.level,food.category).emoji:kinds[food.type].emoji; }
+  function reset(){ state={day:1,coins:120,bags:100,opened:0,meatBags:100,meatOpened:0,bagIndex:0,meatBagIndex:1,potIndex:2,potOpen:false,potContents:[],order:newOrder(),cells:Array(56).fill(null),discovered:{}}; [1,1,1,1,1].forEach(level=>addFood('cabbage',level,true,'vegetable')); [1,1].forEach(level=>addFood('chicken-leg',level,true,'meat')); state.cells[state.bagIndex]={kind:'bag',category:'vegetable'}; state.cells[state.meatBagIndex]={kind:'bag',category:'meat'}; state.cells[state.potIndex]={kind:'pot'}; state.message='将蔬菜、肉类或料理拖入锅中，再点击锅开火'; render(); }
+  function addFood(type=randomKind(),level=1,chain=vegetableByType[type]!==undefined || meatByType[type]!==undefined,category=meatByType[type]?'meat':'vegetable'){ const i=state.cells.findIndex((cell,index)=>cell===null && index!==state.bagIndex && index!==state.meatBagIndex && index!==state.potIndex); if(i<0)return null; state.cells[i]=chain?chainFood(type,level,category):{type,level}; return i; }
+  function discoveryKey(food){ return food.category==='fusion'?`fusion:${canonicalFusionRecipe(food.recipe)}:${food.level}`:`${food.type}:${food.level}`; }
+  function discover(food){ state.discovered[discoveryKey(food)]=true; }
+  function openBag(category){ const isMeat=category==='meat'; const count=isMeat?state.meatBags:state.bags; if(!count)return toast(`${isMeat?'肉类':'蔬菜'}包用完啦`); const i=isMeat?addFood('chicken-leg',1,true,'meat'):addFood('cabbage',1,true,'vegetable'); if(i===null)return toast('棋盘已满，请先整理出空位'); if(isMeat){state.meatBags--;state.meatOpened++;}else{state.bags--;state.opened++;} discover(state.cells[i]); toast(`打开${isMeat?'肉类':'蔬菜'}包，获得 ${foodName(state.cells[i])}`); render(); }
+  function toast(msg){ $('message').textContent=msg; const el=$('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>el.classList.remove('show'),1400); }
+  function render(){
+    $('day').textContent=`第 ${state.day} 天`; $('coins').textContent=`🪙 ${state.coins}`; $('openedCount').textContent=state.opened; $('meatOpenedCount').textContent=state.meatOpened; $('orderTarget').textContent=`${foodEmoji(state.order)}  ${foodName(state.order)} Lv.${state.order.level}`; $('orderReward').textContent=`奖励  🪙 ${state.order.reward}`;
+    const board=$('board'); board.innerHTML=''; const boardHasSpace=emptyBoardIndex()>=0; state.cells.forEach((food,i)=>{
+      const cell=document.createElement('div'); cell.dataset.index=i;
+      if(i===state.potIndex){ cell.className=`cell pot-cell${state.potContents.length?' ready':''}`; cell.title='打开烹饪锅'; cell.setAttribute('aria-label',cell.title); cell.innerHTML=`<img src="assets/cooking/cooking-pot.png" alt="烹饪锅"><b class="pot-count">${state.potContents.length?`${state.potContents.length}/3`:'可烹饪'}</b>`; board.appendChild(cell); return; }
+      const bagClass=food?.kind==='bag'?' bag-cell'+(food.category==='meat'?' meat-bag-cell':''):''; cell.className='cell'+bagClass+(food?.kind==='bag'?'':' '+(food?'food':''));
+      if(food?.kind==='bag'){ const isMeat=food.category==='meat'; const count=isMeat?state.meatBags:state.bags; const blocked=!count || !boardHasSpace; cell.title=!boardHasSpace?'棋盘已满，暂不能开包':count ? `${isMeat?'肉类':'蔬菜'}包，剩余 ${count} 次` : '开包次数已用完'; cell.setAttribute('aria-label',cell.title); cell.setAttribute('aria-disabled',blocked?'true':'false'); cell.innerHTML=`<img src="assets/${isMeat?'meat-bag-v1':'vegetable-bag-v2'}.png" alt="${isMeat?'肉类':'蔬菜'}包"><b class="bag-uses">${count}</b>`; if(!count)cell.classList.add('empty'); if(blocked)cell.classList.add('blocked'); }
+      else if(food){ discover(food); cell.title=foodName(food); cell.setAttribute('aria-label',foodName(food)); cell.innerHTML=`<img src="${assetFor(food,food.level)}" alt="${foodName(food)}">`; }
+      board.appendChild(cell);
+    }); renderCatalog(); renderCookingCatalog(); if(state.potOpen) renderPotPanel();
+  }
+  function mergeErrorV2(from,to){ const a=state.cells[from], b=state.cells[to]; if(from===state.potIndex || to===state.potIndex)return '请点击烹饪锅选择食材'; if(a?.kind==='bag' || b?.kind==='bag')return '食材包不能参与合成'; if(!a || !b)return '这个位置不能合成'; if(a.category==='fusion' || b.category==='fusion')return '料理请放入烹饪锅继续制作'; if(a.chain || b.chain){ if(a.chain && b.chain && a.category===b.category && a.type===b.type && a.level===b.level){ const route=a.category==='meat'?meatRoute:vegetableRoute; return a.level<route.length?`可以合成为 Lv.${a.level+1} ${route[a.level].name}`:`Lv.${route.length} 已是最高等级`; } if(a.chain && b.chain && a.category!==b.category)return '蔬菜和肉类请放入烹饪锅'; return '需要两个相同等级的同类食材'; } const aKind=kinds[a.type], bKind=kinds[b.type]; if(aKind && bKind && a.level===3 && b.level===3 && aKind.category!==bKind.category)return '蔬菜和肉类请放入烹饪锅'; if(a.type!==b.type)return `只能合成相同食材：${foodName(a)} 与 ${foodName(b)} 不同`; if(a.level!==b.level)return '只能合成相同等级的料理'; return `Lv.${aKind.maxLevel} 已是最高等级`; }
+  function merge(from,to){ const a=state.cells[from], b=state.cells[to]; if(!a || from===to || a.kind==='bag' || a.kind==='pot' || from===state.potIndex || to===state.potIndex || to===state.bagIndex || to===state.meatBagIndex)return 'invalid'; if(!b){state.cells[to]=a;state.cells[from]=null;return 'moved';} if(a.chain && b.chain && a.category===b.category){ if(a.type!==b.type || a.level!==b.level)return 'invalid'; const chainTypes=a.category==='meat'?['chicken-leg','bacon','meatballs','thick-steak','ribs','pork-chop','roast-roll','bone-steak','pork-belly','roasted-ribs','meat-feast']:['cabbage','tomato','pepper','carrot','mushroom','corn','potato','purple-cabbage']; const nextType=chainTypes[a.level]; if(!nextType)return 'invalid'; state.cells[to]={category:a.category,chain:true,type:nextType,level:a.level+1};state.cells[from]=null;discover(state.cells[to]);return 'merged'; } if(a.category==='fusion' || b.category==='fusion')return 'invalid'; const aKind=kinds[a.type], bKind=kinds[b.type]; if(aKind && bKind && a.type===b.type && a.level===b.level && a.level<aKind.maxLevel){state.cells[to]={type:a.type,level:a.level+1};state.cells[from]=null;discover(state.cells[to]);return 'merged';} return 'invalid'; }
+  function openPot(){ state.potOpen=true; render(); $('potBackdrop').classList.add('open'); }
+  function closePot(){ state.potOpen=false; $('potBackdrop').classList.remove('open'); render(); }
+  function returnPotContents(){
+    if(!state.potContents.length)return {result:'empty'};
+    const empty=[]; for(let index=0;index<state.cells.length;index++){ if(state.cells[index]===null && index!==state.bagIndex && index!==state.meatBagIndex && index!==state.potIndex)empty.push(index); }
+    if(empty.length<state.potContents.length)return {result:'full',message:'棋盘空位不足，无法取出全部食材'};
+    state.potContents.forEach((food,offset)=>{ state.cells[empty[offset]]=food; }); state.potContents=[]; return {result:'returned'};
+  }
+  function renderPotPanel(){
+    const slots=$('potSlots'); if(!slots)return; slots.innerHTML='';
+    for(let slot=0;slot<3;slot++){ const food=state.potContents[slot] || null; const el=document.createElement('div'); el.className='pot-slot'+(food?' filled':''); if(food)el.innerHTML=`<img src="${assetFor(food,food.level)}" alt="${foodName(food)}"><b>${foodName(food)}</b>`; else el.textContent=`槽位 ${slot+1}`; slots.appendChild(el); }
+    const foods=state.potContents.slice(); const route=potRouteForFoods(foods); const preview=$('potPreview'); const cook=$('potCook');
+    if(route){ preview.textContent=`${route.name} · Lv.${route.level} · 消耗 ${foods.length} 份食材`; cook.disabled=false; } else if(foods.length<2){ preview.textContent=`已选择 ${foods.length}/3，至少需要 2 份食材`; cook.disabled=true; } else { preview.textContent='当前组合没有对应配方，请换一组食材'; cook.disabled=true; }
+  }
+  function cookSelected(){ const result=cookPotContents(); if(result.result==='cooked'){ state.coins+=result.food.level*3; state.potOpen=false; $('potBackdrop').classList.remove('open'); toast(`${result.route.name}出锅！金币 +${result.food.level*3}`); render(); } else toast(result.message); }
+  function renderCookingCatalog(){
+    const content=$('catalogContent'); if(!content)return;
+    const itemForRoute=route=>{ const unlocked=state.discovered[`fusion:${canonicalFusionRecipe(route.id)}:${route.level}`]; return `<article class="catalog-item${unlocked?'':' locked'}" data-recipe="${route.id}"><img src="${route.asset}" alt="${unlocked?route.name:'未解锁料理'}"><span class="catalog-level">Lv.${route.level}${unlocked?'':' 🔒'}</span><span class="catalog-name">${route.name}</span><small class="catalog-recipe">${fusionIngredientLabel(route)} · ${route.slots}槽配方</small></article>`; };
+    const groups=[4,5,6].map(level=>{ const routes=potRoutes.filter(route=>route.level===level); if(!routes.length)return ''; const slots=routes[0].slots; const items=routes.map(itemForRoute).join(''); return `<section class="catalog-group"><div class="catalog-title">Lv.${level} · ${slots}槽食谱</div><div class="catalog-levels">${items}</div></section>`; }).join('');
+    content.insertAdjacentHTML('beforeend',`<section class="catalog-group catalog-cooking"><h3 class="catalog-section-title">烹饪锅料理 · 手绘料理图鉴</h3><div class="catalog-title">🍲 拖入 2～3 份食材 → 点击锅 → 开火出锅</div>${groups}</section>`);
+  }
+  function mergeError(from,to){ const a=state.cells[from], b=state.cells[to]; if(a?.kind==='bag' || b?.kind==='bag')return '食材包不能参与合成'; if(!a || !b)return '这个位置不能合成'; if(a.chain || b.chain){ if(a.chain && b.chain && a.category===b.category && a.type===b.type && a.level===b.level){ const route=a.category==='meat'?meatRoute:vegetableRoute; return a.level<route.length?`可以合成为 Lv.${a.level+1} ${route[a.level].name}`:`Lv.${route.length} 已是最高等级`; } return a.chain && b.chain?'需要两个相同等级的同类食材':'蔬菜和肉类路线不能混合合成'; } if(a.category==='fusion' || b.category==='fusion'){ if(a.category!=='fusion' || b.category!=='fusion')return '组合料理只能与组合料理合成'; if(a.level===5 || b.level===5)return 'Lv.5 已是最高料理等级'; if(a.level!==b.level)return '只能合成相同等级的组合料理'; const aRecipe=canonicalFusionRecipe(a.recipe), bRecipe=canonicalFusionRecipe(b.recipe); if(aRecipe===bRecipe)return '需要两个不同的 Lv.4 料理'; return fusionLv5ById[canonicalFusionRecipe(`${aRecipe}|${bRecipe}`)]?'可以合成指定的 Lv.5 料理':'这个 Lv.4 组合没有对应的 Lv.5 配方'; } const aKind=kinds[a.type], bKind=kinds[b.type]; if(a.level===3 && b.level===3 && aKind.category!==bKind.category){ const vegetable=aKind.category==='vegetable'?a.type:b.type; const meat=aKind.category==='meat'?a.type:b.type; return fusionLv4ById[`${vegetable}+${meat}`]?'可以合成指定的 Lv.4 料理':'这个蔬菜和肉类组合暂未收录'; } if(a.type!==b.type)return `只能合成相同食材：${foodName(a)} 与 ${foodName(b)} 不同`; if(a.level!==b.level)return '只能合成相同等级的料理'; return `Lv.${aKind.maxLevel} 已是最高料理等级`; }
+  function renderCatalog(){ const content=$('catalogContent'); if(!content)return; const renderRoute=(title,items)=>`<section class="catalog-group"><div class="catalog-title">${title}</div><div class="catalog-levels">${items}</div></section>`; const vegetableItems=vegetableRoute.map(item=>{ const unlocked=state.discovered[`${item.type}:${item.level}`]; return `<article class="catalog-item${unlocked?'':' locked'}"><img src="${vegetableAssetPrefix}/${item.type}.png" alt="${unlocked?item.name:'未解锁蔬菜'}"><span class="catalog-level">Lv.${item.level}${unlocked?'':' 🔒'}</span><span class="catalog-name">${item.name}</span></article>`; }).join(''); const vegetableSection=`<h3 class="catalog-section-title">8级蔬菜合成路线</h3>${renderRoute('🥬 两份同级蔬菜 → 下一种蔬菜',vegetableItems)}`; const meatItems=meatRoute.map(item=>{ const unlocked=state.discovered[`${item.type}:${item.level}`]; return `<article class="catalog-item${unlocked?'':' locked'}"><img src="${meatAssetPrefix}/${item.type}.png" alt="${unlocked?item.name:'未解锁肉类'}"><span class="catalog-level">Lv.${item.level}${unlocked?'':' 🔒'}</span><span class="catalog-name">${item.name}</span></article>`; }).join(''); const meatSection=`<h3 class="catalog-section-title">11级肉类合成路线</h3>${renderRoute('🥩 两份同级肉类 → 下一种肉类',meatItems)}`; content.innerHTML=vegetableSection+meatSection; }
+  $('board').addEventListener('click',e=>{ const cell=e.target.closest('.cell'); if(!cell)return; const index=Number(cell.dataset.index); const food=state.cells[index]; if(index===state.potIndex){openPot();return;} const bag=e.target.closest('.bag-cell'); if(bag)openBag(food.category); });
+  $('potClose').addEventListener('click',closePot);
+  $('potClear').addEventListener('click',()=>{ const result=returnPotContents(); if(result.result==='returned'){toast('食材已取出');render();} else if(result.result==='full')toast(result.message); });
+  $('potCook').addEventListener('click',cookSelected);
+  $('potBackdrop').addEventListener('click',e=>{ if(e.target===$('potBackdrop'))closePot(); });
+  $('reset').addEventListener('click',reset);
+  $('catalogOpen').addEventListener('click',()=>{ renderCatalog(); renderCookingCatalog(); $('catalogBackdrop').classList.add('open'); });
+  $('catalogClose').addEventListener('click',()=>$('catalogBackdrop').classList.remove('open'));
+  $('catalogBackdrop').addEventListener('click',e=>{ if(e.target===$('catalogBackdrop'))$('catalogBackdrop').classList.remove('open'); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ $('catalogBackdrop').classList.remove('open'); if(state.potOpen)closePot(); } });
+  let drag=null;
+  $('board').addEventListener('pointerdown',e=>{ if(state.potOpen)return; const cell=e.target.closest('.cell.food'); if(!cell)return; drag=Number(cell.dataset.index); cell.setPointerCapture?.(e.pointerId); cell.classList.add('dragging'); });
+  $('board').addEventListener('pointerup',e=>{ if(state.potOpen){drag=null;return;} if(drag===null)return; const from=drag; drag=null; document.querySelectorAll('.dragging').forEach(x=>x.classList.remove('dragging')); const hit= document.elementFromPoint(e.clientX,e.clientY); const cell=hit?.closest?.('.cell'); if(!cell || !$('board').contains(cell))return render(); const target=Number(cell.dataset.index); if(target===state.potIndex){ const result=moveToPot(from); if(result.result==='moved')toast(`${foodName(result.food)}已加入烹饪锅`); else toast(result.message); render(); return; } const result=merge(from,target); if(result==='merged'){state.coins+=3;const resultFood=state.cells[target];toast(`${foodName(resultFood)}合成成功！金币 +3`);}else if(result==='moved')toast('摆放完成');else toast(mergeErrorV2(from,target));render(); });
+  $('board').addEventListener('pointercancel',()=>{ drag=null; document.querySelectorAll('.dragging').forEach(x=>x.classList.remove('dragging')); });
+  reset();
+})();
+</script>
+</body></html>

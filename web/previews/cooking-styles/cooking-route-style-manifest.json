@@ -1,0 +1,164 @@
+{
+  "reference": "warm yellow cookbook grid with thick outlines and soft shadows",
+  "meat_style": "grill",
+  "recipes": [
+    {
+      "id": "cabbage+pork",
+      "level": 4,
+      "name": "炭香包菜猪肉卷",
+      "pairs": [
+        [
+          "cabbage",
+          "pork"
+        ]
+      ]
+    },
+    {
+      "id": "carrot+chicken",
+      "level": 4,
+      "name": "胡萝卜鸡腿焗盏",
+      "pairs": [
+        [
+          "carrot",
+          "chicken"
+        ]
+      ]
+    },
+    {
+      "id": "tomato+beef",
+      "level": 4,
+      "name": "番茄黑椒牛肉船",
+      "pairs": [
+        [
+          "tomato",
+          "beef"
+        ]
+      ]
+    },
+    {
+      "id": "pepper+shrimp",
+      "level": 4,
+      "name": "彩椒蒜香虾仁串",
+      "pairs": [
+        [
+          "pepper",
+          "shrimp"
+        ]
+      ]
+    },
+    {
+      "id": "corn+pork",
+      "level": 4,
+      "name": "玉米培根黄金杯",
+      "pairs": [
+        [
+          "corn",
+          "pork"
+        ]
+      ]
+    },
+    {
+      "id": "cabbage+pork|carrot+chicken",
+      "level": 5,
+      "name": "翡翠炭香双拼",
+      "pairs": [
+        [
+          "cabbage",
+          "pork"
+        ],
+        [
+          "carrot",
+          "chicken"
+        ]
+      ]
+    },
+    {
+      "id": "tomato+beef|pepper+shrimp",
+      "level": 5,
+      "name": "红金海陆焗盘",
+      "pairs": [
+        [
+          "tomato",
+          "beef"
+        ],
+        [
+          "pepper",
+          "shrimp"
+        ]
+      ]
+    },
+    {
+      "id": "corn+pork|carrot+chicken",
+      "level": 5,
+      "name": "金玉炭火丰收盘",
+      "pairs": [
+        [
+          "corn",
+          "pork"
+        ],
+        [
+          "carrot",
+          "chicken"
+        ]
+      ]
+    },
+    {
+      "id": "cabbage+pork|tomato+beef|pepper+shrimp",
+      "level": 6,
+      "name": "三色炭火盛宴",
+      "pairs": [
+        [
+          "cabbage",
+          "pork"
+        ],
+        [
+          "tomato",
+          "beef"
+        ],
+        [
+          "pepper",
+          "shrimp"
+        ]
+      ]
+    },
+    {
+      "id": "carrot+chicken|corn+pork|tomato+beef",
+      "level": 6,
+      "name": "金谷海陆铁锅",
+      "pairs": [
+        [
+          "carrot",
+          "chicken"
+        ],
+        [
+          "corn",
+          "pork"
+        ],
+        [
+          "tomato",
+          "beef"
+        ]
+      ]
+    }
+  ],
+  "styles": {
+    "a": {
+      "title": "A  炭火餐馆",
+      "subtitle": "暖奶油餐盘 · 焦边最清晰"
+    },
+    "b": {
+      "title": "B  手绘料理图鉴",
+      "subtitle": "米白纸张 · 墨线水彩感"
+    },
+    "c": {
+      "title": "C  夜市铁锅",
+      "subtitle": "深铁锅体 · 橙色火光"
+    }
+  },
+  "outputs": [
+    "cooking-route-style-overview.png",
+    "cooking-route-detail-a.png",
+    "cooking-route-detail-b.png",
+    "cooking-route-detail-c.png"
+  ]
+}
