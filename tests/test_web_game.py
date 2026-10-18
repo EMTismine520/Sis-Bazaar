@@ -337,6 +337,11 @@ def test_web_page_contains_catalog_routes():
     assert "potIngredientLabels" in html
     assert "chicken:'🍗鸡腿'" in html
     assert "renderCatalog(); renderCookingCatalog(); $('catalogBackdrop').classList.add('open')" in html
+    assert '<div class="catalog-content" id="catalogContent"></div>' in html
+    assert "height:min(80dvh, 760px)" in html
+    assert "max-height:calc(100dvh - 28px)" in html
+    assert "display:flex; flex-direction:column; overflow:hidden" in html
+    assert ".catalog-content { min-height:0; flex:1 1 auto; overflow-y:auto" in html
     assert "touch-action:manipulation" in html
     assert "touch-action:none" in html
     assert "overflow-y:auto" in html

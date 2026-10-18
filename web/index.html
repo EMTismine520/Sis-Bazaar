@@ -55,10 +55,11 @@
     #catalogOpen { background:#e2f3f5; border-color:#70aeb8; }
     .catalog-backdrop { position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center; padding:14px; background:rgba(45,53,45,.45); touch-action:pan-y; }
     .catalog-backdrop.open { display:flex; }
-    .catalog { width:min(100%, 650px); max-height:min(88dvh, 760px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; background:#fff9e0; border:3px solid var(--orange); border-radius:22px; padding:16px; box-shadow:0 12px 36px rgba(49,49,37,.25); }
-    .catalog-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+    .catalog { width:min(100%, 650px); height:min(80dvh, 760px); max-height:calc(100dvh - 28px); display:flex; flex-direction:column; overflow:hidden; background:#fff9e0; border:3px solid var(--orange); border-radius:22px; padding:16px; box-shadow:0 12px 36px rgba(49,49,37,.25); }
+    .catalog-head { flex:0 0 auto; display:flex; align-items:center; gap:10px; margin-bottom:12px; }
     .catalog-head h2 { margin:0; color:var(--dark); font-size:20px; }
     .catalog-close { margin-left:auto; width:34px; height:34px; border-radius:50%; background:#ffdfad; border:1px solid var(--orange); font-size:20px; line-height:1; }
+    .catalog-content { min-height:0; flex:1 1 auto; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; }
     .catalog-group { padding:11px 0 13px; border-top:1px dashed #d6b77b; }
     .catalog-group:first-of-type { border-top:0; }
     .catalog-section-title { margin:8px 0 2px; color:var(--dark); font-size:14px; }
@@ -111,7 +112,7 @@
 <div class="catalog-backdrop" id="catalogBackdrop" role="dialog" aria-modal="true" aria-labelledby="catalogTitle">
   <section class="catalog">
     <header class="catalog-head"><h2 id="catalogTitle">料理图鉴</h2><button class="catalog-close" id="catalogClose" aria-label="关闭料理图鉴">×</button></header>
-    <div id="catalogContent"></div>
+    <div class="catalog-content" id="catalogContent"></div>
   </section>
 </div>
 <div class="pot-backdrop" id="potBackdrop" role="dialog" aria-modal="true" aria-labelledby="potTitle">
