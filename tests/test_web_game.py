@@ -501,17 +501,17 @@ console.log(JSON.stringify({prices,sequence,afterSequence,purchased,repeat,poor,
 
 def test_v2_order_failure_success_refresh_and_no_duplicate_reward():
     result = run_web_runtime("""
-state.order={...chainFood('cabbage',1,'vegetable'),reward:999};
+state.order={items:[chainFood('cabbage',1,'vegetable')],submitted:[false],level:1,quantity:1,reward:999};
 const before=JSON.stringify(state), failed=submitOrder(8), preserved=before===JSON.stringify(state);
 const message=$('message').textContent, oldOrder=state.order;
 const success=submitOrder(3), refreshed=state.order!==oldOrder;
-const nextValid=orderCandidates().some(food=>sameFood(food,state.order));
+const nextValid=state.order.items.some(target=>orderCandidates().some(food=>sameFood(food,target)));
 const duplicate=submitOrder(3);
 console.log(JSON.stringify({failed,preserved,message,success,refreshed,nextValid,duplicate,coins:state.coins,day:state.day,cell:state.cells[3],bags:state.bags,meatBags:state.meatBags,order:state.order}));
 """)
     assert result["failed"]["result"] == "invalid" and result["preserved"]
-    assert "订单需要" in result["message"]
-    assert result["success"] == {"result": "submitted", "reward": 24}
+    assert "订单还需要" in result["message"]
+    assert result["success"] == {"result": "submitted", "reward": 24, "submitted": 1}
     assert result["refreshed"] and result["nextValid"] and result["duplicate"]["result"] == "invalid"
     assert result["coins"] == 144 and result["day"] == 2 and result["cell"] is None
     assert result["bags"] == result["meatBags"] == 1000
@@ -520,7 +520,7 @@ console.log(JSON.stringify({failed,preserved,message,success,refreshed,nextValid
 def test_v2_fusion_orders_match_recipe_and_level():
     result = run_web_runtime("""
 const route=potLv5Routes[0];
-state.order={category:'fusion',recipe:route.id,level:5,reward:orderReward(5)};
+state.order={items:[{category:'fusion',recipe:route.id,level:5}],submitted:[false],level:5,quantity:1,reward:orderReward(5)};
 state.cells[3]={category:'fusion',recipe:route.ingredients.slice().reverse().join('|'),level:5};
 state.cells[4]={category:'fusion',recipe:potLv5Routes[1].id,level:5};
 const wrongRecipe=submitOrder(4), success=submitOrder(3);
@@ -543,7 +543,7 @@ const pool=orderCandidates();
 const samples=Array.from({length:200},()=>newOrder());
 console.log(JSON.stringify({fallback,purchasedOnly,pool,samples}));
 """)
-    assert result["fallback"]["type"] == "cabbage"
+    assert result["fallback"]["items"][0]["type"] == "cabbage"
     assert len(result["purchasedOnly"]) == 2  # Without a discovered dish, orders fall back to discovered basics.
     assert len(result["pool"]) == 4
     expected = {
@@ -551,11 +551,56 @@ console.log(JSON.stringify({fallback,purchasedOnly,pool,samples}));
         for item in result["pool"]
     }
     sampled = {
-        (item.get("category"), item.get("type"), item.get("recipe"), item["level"])
+        (item["items"][0].get("category"), item["items"][0].get("type"), item["items"][0].get("recipe"), item["items"][0]["level"])
         for item in result["samples"]
     }
     assert sampled <= expected
     assert not any(item.get("type") == "thick-steak" for item in result["pool"])
+
+
+def test_v2_orders_scale_level_and_quantity_by_day_with_duplicate_fallback():
+    result = run_web_runtime("""
+state.discovered={'cabbage:1':true,'tomato:2':true,'pepper:3':true,'chicken-leg:1':true,'fusion:cabbage+pork:4':true};
+state.unlockedLevels={vegetable:3,meat:3};
+state.day=1;const day1=newOrder();
+state.day=3;const day3=newOrder();
+state.day=5;const day5=newOrder();
+state.discovered={'cabbage:1':true};state.day=5;const onlyOne=newOrder();
+console.log(JSON.stringify({day1,day3,day5,onlyOne}));
+""")
+    assert result["day1"]["quantity"] == 1 and result["day1"]["level"] == 1
+    assert result["day3"]["quantity"] == 2 and result["day3"]["level"] == 2
+    assert result["day5"]["quantity"] == 3 and result["day5"]["level"] == 3
+    assert len(result["onlyOne"]["items"]) == 3
+    assert {item["type"] for item in result["onlyOne"]["items"]} == {"cabbage"}
+
+
+def test_v2_mixed_order_submits_one_target_at_a_time_and_pays_once():
+    result = run_web_runtime("""
+state.order={items:[chainFood('cabbage',1,'vegetable'),chainFood('chicken-leg',1,'meat')],submitted:[false,false],level:1,quantity:2,reward:999};
+state.cells[3]={type:'tomato',level:1};
+state.cells[4]=chainFood('cabbage',1,'vegetable');
+state.cells[5]=chainFood('chicken-leg',1,'meat');
+const before=JSON.stringify(state),failed=submitOrder(3),preserved=JSON.stringify(state)===before;
+const beforeCoins=state.coins,beforeDay=state.day,partial=submitOrder(4),partialCoins=state.coins,partialDay=state.day,progress=state.order.submitted.slice();
+const complete=submitOrder(5),afterCoins=state.coins,afterDay=state.day,duplicate=submitOrder(5);
+console.log(JSON.stringify({failed,preserved,partial,partialCoins,partialDay,progress,complete,afterCoins,afterDay,duplicate,cell4:state.cells[4],cell5:state.cells[5]}));
+""")
+    assert result["failed"]["result"] == "invalid" and result["preserved"]
+    assert result["partial"] == {"result": "partial", "submitted": 1, "remaining": 1}
+    assert result["partialCoins"] == 120 and result["partialDay"] == 1
+    assert result["progress"] == [True, False]
+    assert result["complete"]["result"] == "submitted" and result["complete"]["reward"] == 32
+    assert result["afterCoins"] == 152 and result["afterDay"] == 2
+    assert result["duplicate"]["result"] == "invalid"
+    assert result["cell4"] is None and result["cell5"] is None
+
+
+def test_v2_order_reward_formula_scales_extra_targets():
+    result = run_web_runtime("""
+console.log(JSON.stringify({single:orderRewardFor(1,1),two:orderRewardFor(4,2),three:orderRewardFor(5,3)}));
+""")
+    assert result == {"single": 24, "two": 56, "three": 72}
 
 
 def test_v2_storage_roundtrip_keeps_entire_progress_and_pot():
@@ -577,6 +622,23 @@ console.log(JSON.stringify({restored,equal:JSON.stringify(saved)===JSON.stringif
     assert saved["cells"][3] is None and len(saved["potContents"]) == 1
 
 
+def test_v2_storage_roundtrip_keeps_partial_order_and_migrates_legacy_order():
+    result = run_web_runtime("""
+state.discovered['chicken-leg:1']=true;
+state.order={items:[chainFood('cabbage',1,'vegetable'),chainFood('chicken-leg',1,'meat')],submitted:[true,false],level:1,quantity:2,reward:999};
+state.day=3;render();
+const saved=JSON.parse(localStorage.getItem(SAVE_KEY));
+beginNewGame();const restored=loadGame();
+const legacy={...saved,order:{...chainFood('cabbage',1,'vegetable'),reward:999}};
+localStorage.setItem(SAVE_KEY,JSON.stringify(legacy));const migrated=loadGame();
+console.log(JSON.stringify({restored,restoredOrder:saved.order,liveOrder:state.order,migrated,migratedOrder:state.order}));
+""")
+    assert result["restoredOrder"]["submitted"] == [True, False]
+    assert result["restoredOrder"]["reward"] == 32
+    assert result["migrated"] and result["migratedOrder"]["quantity"] == 1
+    assert result["migratedOrder"]["submitted"] == [False]
+
+
 def test_v2_corrupt_and_incompatible_saves_start_safely():
     result = run_web_runtime("""
 const good=JSON.parse(localStorage.getItem(SAVE_KEY));
@@ -591,8 +653,8 @@ const restored=loadGame();
 console.log(JSON.stringify({results,restored,coins:state.coins,order:state.order}));
 """)
     assert all(result["results"])
-    assert result["restored"] and result["coins"] == 99
-    assert result["order"]["level"] == 1
+    assert not result["restored"] and result["coins"] == 120
+    assert result["order"]["quantity"] == 1
 
 
 def test_v2_reset_requires_confirmation_and_replaces_save():
@@ -618,7 +680,7 @@ function drop(from,target){
   document.hit=target;board.listeners.pointerup({clientX:0,clientY:0});
 }
 drop(3,$('board').children[4]);const mergedCoins=state.coins;
-state.order={...chainFood('tomato',2,'vegetable'),reward:orderReward(2)};
+state.order={items:[chainFood('tomato',2,'vegetable')],submitted:[false],level:2,quantity:1,reward:orderReward(2)};
 drop(4,$('orderCard'));
 console.log(JSON.stringify({mergedCoins,coins:state.coins,day:state.day,cell:state.cells[4],saved:JSON.parse(localStorage.getItem(SAVE_KEY)).coins}));
 """)
@@ -636,3 +698,8 @@ def test_v2_page_has_shop_version_order_drop_and_narrow_layout():
     assert ".shop-content { min-height:0; overflow-y:auto" in html
     assert "localStorage.setItem(SAVE_KEY" in html and "localStorage.removeItem(SAVE_KEY" in html
     assert "window.confirm(" in html and "  loadGame();\n})();" in html
+    assert "function orderQuantity(day)" in html
+    assert "function orderLevelForDay(day,candidates)" in html
+    assert "function orderRewardFor(level,quantity)" in html
+    assert "items:" in html and "submitted:" in html
+    assert "order-progress" in html and "orderNeeds(order)" in html
