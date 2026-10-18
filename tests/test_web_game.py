@@ -392,3 +392,247 @@ def test_web_page_explains_different_food_types_cannot_merge():
     assert "只能合成相同食材" in html
     assert "foodName(a)" in html
     assert "foodName(b)" in html
+
+
+def run_web_runtime(case):
+    """Run the actual page script, with DOM/storage adapters and real event handlers."""
+    harness = r"""
+const fs=require('node:fs'), vm=require('node:vm');
+const html=fs.readFileSync('web/index.html','utf8');
+const script=html.match(/<script>([\s\S]*?)<\/script>/)[1]
+  .replace('(() => {','').replace(/\}\)\(\);\s*$/,'');
+const nodes=new Map(), records=new Map(), removedKeys=[];
+function element(id='') {
+  return {id,dataset:{},className:'',children:[],listeners:{},_html:'',textContent:'',
+    get innerHTML(){return this._html;},
+    set innerHTML(value){this._html=value;this.children=[];},
+    get classList(){const self=this;return {
+      add(name){if(!self.className.split(' ').includes(name))self.className+=' '+name;},
+      remove(name){self.className=self.className.split(' ').filter(x=>x!==name).join(' ');},
+      contains(name){return self.className.split(' ').includes(name);}
+    };},
+    appendChild(child){child.parent=this;this.children.push(child);},
+    contains(child){return child.parent===this;},
+    setAttribute(){},setPointerCapture(){},
+    insertAdjacentHTML(position,value){this._html+=value;},
+    addEventListener(type,handler){this.listeners[type]=handler;},
+    closest(selector){
+      if(selector==='#'+this.id)return this;
+      if(selector.startsWith('.') && selector.slice(1).split('.').every(name=>this.classList.contains(name)))return this;
+      return this.parent?.closest(selector)||null;
+    }
+  };
+}
+const document={
+  getElementById(id){if(!nodes.has(id))nodes.set(id,element(id));return nodes.get(id);},
+  createElement(){return element();},addEventListener(){},
+  querySelectorAll(){return [...nodes.values()].flatMap(x=>x.children).filter(x=>x.classList.contains('dragging'));},
+  elementFromPoint(){return this.hit;}
+};
+const localStorage={getItem:key=>records.get(key)||null,setItem:(key,value)=>records.set(key,value),removeItem:key=>{records.delete(key);removedKeys.push(key);}};
+vm.runInNewContext(script+'\n'+fs.readFileSync(0,'utf8'),{
+  document,localStorage,window:{confirm:()=>true},console,records,removedKeys,
+  setTimeout:()=>0,clearTimeout:()=>{}
+});
+"""
+    completed = subprocess.run(
+        ["node", "-e", harness], input=case, cwd=ROOT, check=True,
+        capture_output=True, text=True, encoding="utf-8",
+    )
+    return json.loads(completed.stdout)
+
+
+def test_v2_merge_rewards_once_and_locked_levels_keep_ingredients():
+    result = run_web_runtime("""
+const initial=state.coins;
+const merged=merge(3,4), afterMerge=state.coins;
+const moved=merge(4,10), afterMove=state.coins;
+state.cells[3]=chainFood('pepper',3,'vegetable');
+state.cells[4]=chainFood('pepper',3,'vegetable');
+const before=JSON.stringify(state.cells), locked=merge(3,4);
+const preserved=before===JSON.stringify(state.cells);
+buyIngredient('vegetable',4);
+const purchased=state.coins, unlockedMerge=merge(3,4);
+console.log(JSON.stringify({initial,merged,afterMerge,moved,afterMove,locked,preserved,purchased,unlockedMerge,coins:state.coins,food:state.cells[4]}));
+""")
+    assert result["merged"] == "merged" and result["afterMerge"] == 123
+    assert result["moved"] == "moved" and result["afterMove"] == 123
+    assert result["locked"] == "locked" and result["preserved"]
+    assert result["purchased"] == 63 and result["coins"] == 66
+    assert result["unlockedMerge"] == "merged" and result["food"]["level"] == 4
+
+
+def test_v2_cooking_rewards_all_levels_without_extra_bags():
+    result = run_web_runtime("""
+const results=[];
+for(const level of [4,5,6]){
+  beginNewGame();
+  const route=potRoutes.find(route=>route.level===level);
+  state.potContents=level===4?[chainFood('cabbage',1,'vegetable'),chainFood('bacon',2,'meat')]:route.ingredients.map(recipe=>({category:'fusion',recipe,level:4}));
+  cookSelected();
+  results.push({level,coins:state.coins,bags:state.bags,meatBags:state.meatBags,pot:state.potContents.length,discovered:state.discovered[discoveryKey({category:'fusion',recipe:route.id,level})]});
+}
+console.log(JSON.stringify(results));
+""")
+    for row in result:
+        assert row["coins"] == 120 + row["level"] * 3
+        assert row["bags"] == row["meatBags"] == 1000
+        assert row["pot"] == 0 and row["discovered"]
+
+
+def test_v2_unlock_cost_sequence_balance_and_independent_routes():
+    result = run_web_runtime("""
+const prices=[4,5,6,7,8,9,10,11].map(ingredientUnlockCost);
+const sequence=buyIngredient('vegetable',5), afterSequence=state.coins;
+const purchased=buyIngredient('vegetable',4), repeat=buyIngredient('vegetable',4);
+const poor=buyIngredient('vegetable',5), poorMessage=$('message').textContent;
+const independent=state.unlockedLevels.meat;
+state.coins=200;const next=buyIngredient('vegetable',5);
+const meat=buyIngredient('meat',4);
+console.log(JSON.stringify({prices,sequence,afterSequence,purchased,repeat,poor,poorMessage,independent,next,meat,coins:state.coins,unlocked:state.unlockedLevels}));
+""")
+    assert result["prices"] == [60, 90, 120, 150, 180, 210, 240, 270]
+    assert result["sequence"]["result"] == "sequence" and result["afterSequence"] == 120
+    assert result["purchased"]["price"] == 60 and result["repeat"]["result"] == "unlocked"
+    assert result["poor"]["result"] == "poor" and "金币不足" in result["poorMessage"]
+    assert result["independent"] == 3 and result["unlocked"] == {"vegetable": 5, "meat": 4}
+    assert result["coins"] == 50
+
+
+def test_v2_order_failure_success_refresh_and_no_duplicate_reward():
+    result = run_web_runtime("""
+state.order={...chainFood('cabbage',1,'vegetable'),reward:999};
+const before=JSON.stringify(state), failed=submitOrder(8), preserved=before===JSON.stringify(state);
+const message=$('message').textContent, oldOrder=state.order;
+const success=submitOrder(3), refreshed=state.order!==oldOrder;
+const nextValid=orderCandidates().some(food=>sameFood(food,state.order));
+const duplicate=submitOrder(3);
+console.log(JSON.stringify({failed,preserved,message,success,refreshed,nextValid,duplicate,coins:state.coins,day:state.day,cell:state.cells[3],bags:state.bags,meatBags:state.meatBags,order:state.order}));
+""")
+    assert result["failed"]["result"] == "invalid" and result["preserved"]
+    assert "订单需要" in result["message"]
+    assert result["success"] == {"result": "submitted", "reward": 24}
+    assert result["refreshed"] and result["nextValid"] and result["duplicate"]["result"] == "invalid"
+    assert result["coins"] == 144 and result["day"] == 2 and result["cell"] is None
+    assert result["bags"] == result["meatBags"] == 1000
+
+
+def test_v2_fusion_orders_match_recipe_and_level():
+    result = run_web_runtime("""
+const route=potLv5Routes[0];
+state.order={category:'fusion',recipe:route.id,level:5,reward:orderReward(5)};
+state.cells[3]={category:'fusion',recipe:route.ingredients.slice().reverse().join('|'),level:5};
+state.cells[4]={category:'fusion',recipe:potLv5Routes[1].id,level:5};
+const wrongRecipe=submitOrder(4), success=submitOrder(3);
+console.log(JSON.stringify({wrongRecipe,success,coins:state.coins,remaining:state.cells[4]}));
+""")
+    assert result["wrongRecipe"]["result"] == "invalid" and result["remaining"]
+    assert result["success"]["reward"] == 56 and result["coins"] == 176
+
+
+def test_v2_orders_only_use_discovered_unlocked_foods_and_fallback():
+    result = run_web_runtime("""
+state.discovered={'cabbage:1':true};
+const fallback=newOrder();
+buyIngredient('vegetable',4);
+state.discovered['tomato:2']=true;
+const purchasedOnly=orderCandidates();
+state.discovered['thick-steak:4']=true; // Still locked on the meat route.
+const route=potLv4Routes[0];state.discovered[discoveryKey({category:'fusion',recipe:route.id,level:4})]=true;
+const pool=orderCandidates();
+const samples=Array.from({length:200},()=>newOrder());
+console.log(JSON.stringify({fallback,purchasedOnly,pool,samples}));
+""")
+    assert result["fallback"]["type"] == "cabbage"
+    assert len(result["purchasedOnly"]) == 2  # Without a discovered dish, orders fall back to discovered basics.
+    assert len(result["pool"]) == 4
+    expected = {
+        (item.get("category"), item.get("type"), item.get("recipe"), item["level"])
+        for item in result["pool"]
+    }
+    sampled = {
+        (item.get("category"), item.get("type"), item.get("recipe"), item["level"])
+        for item in result["samples"]
+    }
+    assert sampled <= expected
+    assert not any(item.get("type") == "thick-steak" for item in result["pool"])
+
+
+def test_v2_storage_roundtrip_keeps_entire_progress_and_pot():
+    result = run_web_runtime("""
+buyIngredient('vegetable',4);openBag('vegetable');openBag('meat');
+moveToPot(3);state.day=7;render();
+const saved=JSON.parse(localStorage.getItem(SAVE_KEY));
+beginNewGame();const restored=loadGame();
+const after=JSON.parse(localStorage.getItem(SAVE_KEY));
+console.log(JSON.stringify({restored,equal:JSON.stringify(saved)===JSON.stringify(after),after}));
+""")
+    assert result["restored"] and result["equal"]
+    saved = result["after"]
+    assert saved["version"] == "2.0.0" and saved["schema"] == 2
+    assert saved["coins"] == 60 and saved["day"] == 7
+    assert saved["bags"] == saved["meatBags"] == 999
+    assert saved["opened"] == saved["meatOpened"] == 1
+    assert saved["unlockedLevels"] == {"vegetable": 4, "meat": 3}
+    assert saved["cells"][3] is None and len(saved["potContents"]) == 1
+
+
+def test_v2_corrupt_and_incompatible_saves_start_safely():
+    result = run_web_runtime("""
+const good=JSON.parse(localStorage.getItem(SAVE_KEY));
+const corrupt=[null,{...good,version:'1.0.0'},{...good,schema:1},{...good,cells:[]},{...good,coins:-1},{...good,day:0},{...good,bagIndex:10},{...good,opened:1001},{...good,discovered:[]},{...good,potContents:[{}]}];
+const wrongFood=JSON.parse(JSON.stringify(good));wrongFood.cells[3]={type:'missing',level:9};corrupt.push(wrongFood);
+const lockedFood=JSON.parse(JSON.stringify(good));lockedFood.cells[3]={category:'vegetable',chain:true,type:'carrot',level:4};corrupt.push(lockedFood);
+const results=corrupt.map(value=>{localStorage.setItem(SAVE_KEY,JSON.stringify(value));return loadGame()===false && state.coins===120 && state.day===1;});
+localStorage.setItem(SAVE_KEY,'{broken json');results.push(loadGame()===false);
+const invalidOrder={...good,coins:99,order:{...chainFood('carrot',4,'vegetable'),reward:48}};
+localStorage.setItem(SAVE_KEY,JSON.stringify(invalidOrder));
+const restored=loadGame();
+console.log(JSON.stringify({results,restored,coins:state.coins,order:state.order}));
+""")
+    assert all(result["results"])
+    assert result["restored"] and result["coins"] == 99
+    assert result["order"]["level"] == 1
+
+
+def test_v2_reset_requires_confirmation_and_replaces_save():
+    result = run_web_runtime("""
+buyIngredient('meat',4);openBag('meat');
+const before=localStorage.getItem(SAVE_KEY);
+window.confirm=()=>false;reset();const cancelled=localStorage.getItem(SAVE_KEY)===before && state.coins===60;
+window.confirm=()=>true;reset();
+console.log(JSON.stringify({cancelled,removed:removedKeys.includes(SAVE_KEY),saved:JSON.parse(localStorage.getItem(SAVE_KEY))}));
+""")
+    assert result["cancelled"] and result["removed"]
+    saved = result["saved"]
+    assert saved["coins"] == 120 and saved["day"] == 1
+    assert saved["unlockedLevels"] == {"vegetable": 3, "meat": 3}
+    assert saved["bags"] == saved["meatBags"] == 1000 and saved["potContents"] == []
+
+
+def test_v2_pointer_events_pay_once_and_submit_to_order_card():
+    result = run_web_runtime("""
+function drop(from,target){
+  const board=$('board');
+  board.listeners.pointerdown({target:board.children[from],pointerId:1});
+  document.hit=target;board.listeners.pointerup({clientX:0,clientY:0});
+}
+drop(3,$('board').children[4]);const mergedCoins=state.coins;
+state.order={...chainFood('tomato',2,'vegetable'),reward:orderReward(2)};
+drop(4,$('orderCard'));
+console.log(JSON.stringify({mergedCoins,coins:state.coins,day:state.day,cell:state.cells[4],saved:JSON.parse(localStorage.getItem(SAVE_KEY)).coins}));
+""")
+    assert result == {"mergedCoins": 123, "coins": 155, "day": 2, "cell": None, "saved": 155}
+
+
+def test_v2_page_has_shop_version_order_drop_and_narrow_layout():
+    html = HTML.read_text(encoding="utf-8")
+    assert "v2.0.0" in html and "const SAVE_SCHEMA=2" in html
+    for item_id in ("shopOpen", "shopClose", "shopBackdrop", "shopCoins", "shopContent", "orderCard"):
+        assert f'id="{item_id}"' in html
+    assert "hit?.closest?.('#orderCard')" in html and "submitOrder(from)" in html
+    assert "已解锁 · 未发现" in html and "🔒 未解锁" in html
+    assert ".footer { flex-wrap:wrap" in html and "#message { flex-basis:100%" in html
+    assert ".shop-content { min-height:0; overflow-y:auto" in html
+    assert "localStorage.setItem(SAVE_KEY" in html and "localStorage.removeItem(SAVE_KEY" in html
+    assert "window.confirm(" in html and "  loadGame();\n})();" in html
