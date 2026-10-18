@@ -338,8 +338,11 @@ def test_web_page_contains_catalog_routes():
     assert "chicken:'🍗鸡腿'" in html
     assert "renderCatalog(); renderCookingCatalog(); $('catalogBackdrop').classList.add('open')" in html
     assert '<div class="catalog-content" id="catalogContent"></div>' in html
-    assert "width:min(650px, calc(100vw - 32px))" in html
+    assert "width:min(480px, calc(100vw - 32px))" in html
     assert "max-width:100%; min-width:0" in html
+    assert "overflow:hidden; background:rgba(45,53,45,.45)" in html
+    assert "height:min(80vh, 760px)" in html
+    assert "max-height:calc(100vh - 28px)" in html
     assert "height:min(80dvh, 760px)" in html
     assert "max-height:calc(100dvh - 28px)" in html
     assert "display:flex; flex-direction:column; overflow:hidden" in html
@@ -347,8 +350,12 @@ def test_web_page_contains_catalog_routes():
     assert ".catalog-content { min-height:0; min-width:0; max-width:100%; flex:1 1 auto; overflow-x:hidden; overflow-y:auto" in html
     assert "@media (max-width:600px)" in html
     assert "width:calc(100vw - 20px)" in html
+    assert "height:min(78vh, 680px)" in html
+    assert "max-height:calc(100vh - 20px)" in html
     assert "height:min(78dvh, 680px)" in html
     assert "max-height:calc(100dvh - 20px)" in html
+    assert "$('catalogContent').scrollTop=0" in html
+    assert "$('catalogContent').scrollLeft=0" in html
     assert "touch-action:manipulation" in html
     assert "touch-action:none" in html
     assert "overflow-y:auto" in html
