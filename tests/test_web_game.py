@@ -76,7 +76,7 @@ def run_web_open_bag():
     open_match = re.search(r"function openBag\(category\)\{([\s\S]*?)\}\n  function toast", html)
     assert add_match and open_match, "web bag functions were not found"
     script = f"""
-const state = {{cells:[{{kind:'bag',category:'vegetable'}},{{kind:'bag',category:'meat'}},{{kind:'pot'}},null,null,null], bagIndex:0, meatBagIndex:1, potIndex:2, bags:100, opened:0, meatBags:100, meatOpened:0}};
+const state = {{cells:[{{kind:'bag',category:'vegetable'}},{{kind:'bag',category:'meat'}},{{kind:'pot'}},null,null,null], bagIndex:0, meatBagIndex:1, potIndex:2, bags:1000, opened:0, meatBags:1000, meatOpened:0}};
 const vegetableByType = {{cabbage:{{}}}};
 const meatByType = {{'chicken-leg':{{}}}};
 function randomKind() {{ return 'cabbage'; }}
@@ -88,11 +88,11 @@ const messages = [];
 function toast(message) {{ messages.push(message); }}
 function addFood(type=randomKind(),level=1,chain=vegetableByType[type]!==undefined || meatByType[type]!==undefined,category=meatByType[type]?'meat':'vegetable') {{{add_match.group(1)}}}
 function openBag(category) {{{open_match.group(1)}}}
-for(let count=0;count<100;count++) {{ openBag('vegetable'); state.cells[3]=null; }}
+for(let count=0;count<1000;count++) {{ openBag('vegetable'); state.cells[3]=null; }}
 const vegetableAtLimit = {{count:state.bags, opened:state.opened}};
 openBag('vegetable');
 const vegetableAfterLimit = {{count:state.bags, opened:state.opened}};
-for(let count=0;count<100;count++) {{ openBag('meat'); state.cells[3]=null; }}
+for(let count=0;count<1000;count++) {{ openBag('meat'); state.cells[3]=null; }}
 const meatAtLimit = {{count:state.meatBags, opened:state.meatOpened}};
 openBag('meat');
 const meatAfterLimit = {{count:state.meatBags, opened:state.meatOpened}};
@@ -219,9 +219,9 @@ def test_web_page_uses_first_cell_for_bag_and_has_all_assets():
 
 def test_web_page_has_meat_assets_and_independent_bag_counters():
     html = HTML.read_text(encoding="utf-8")
-    assert "bags:100" in html
-    assert "meatBags:100" in html
-    assert ">0</b>/100" in html
+    assert "bags:1000" in html
+    assert "meatBags:1000" in html
+    assert ">0</b>/1000" in html
     assert "meatOpenedCount" in html
     assert "bag-cell.blocked" in html
     assert "boardHasSpace=emptyBoardIndex()>=0" in html
@@ -248,12 +248,12 @@ def test_route_stickers_are_transparent_256px_assets():
     assert (ROOT / "web" / "assets" / "meats-sticker" / "chicken-leg.png").exists()
 
 
-def test_web_bags_stop_at_100_and_board_full_blocks_opening():
+def test_web_bags_stop_at_1000_and_board_full_blocks_opening():
     result = run_web_open_bag()
-    assert result["vegetableAtLimit"] == {"count": 0, "opened": 100}
-    assert result["vegetableAfterLimit"] == {"count": 0, "opened": 100}
-    assert result["meatAtLimit"] == {"count": 0, "opened": 100}
-    assert result["meatAfterLimit"] == {"count": 0, "opened": 100}
+    assert result["vegetableAtLimit"] == {"count": 0, "opened": 1000}
+    assert result["vegetableAfterLimit"] == {"count": 0, "opened": 1000}
+    assert result["meatAtLimit"] == {"count": 0, "opened": 1000}
+    assert result["meatAfterLimit"] == {"count": 0, "opened": 1000}
     assert result["fullBoard"] == {"count": 1, "message": "棋盘已满，请先整理出空位"}
 
 
@@ -337,6 +337,11 @@ def test_web_page_contains_catalog_routes():
     assert "potIngredientLabels" in html
     assert "chicken:'🍗鸡腿'" in html
     assert "renderCatalog(); renderCookingCatalog(); $('catalogBackdrop').classList.add('open')" in html
+    assert "touch-action:manipulation" in html
+    assert "touch-action:none" in html
+    assert "overflow-y:auto" in html
+    assert "touch-action:pan-y" in html
+    assert "-webkit-overflow-scrolling:touch" in html
     assert "特色料理" in html
     assert "混合料理" not in html
     assert "双味美食" not in html

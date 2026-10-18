@@ -9,7 +9,7 @@
     :root { --bg:#d6efe0; --panel:#fff9e0; --blue:#e2f3f5; --ink:#453a30; --muted:#6f6756; --orange:#e07e30; --dark:#a04e22; }
     * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     html,body { margin:0; min-height:100%; background:var(--bg); font-family:"Microsoft YaHei",system-ui,sans-serif; color:var(--ink); overscroll-behavior:none; }
-    body { display:flex; justify-content:center; touch-action:none; }
+    body { display:flex; justify-content:center; touch-action:manipulation; }
     button { font:inherit; color:inherit; border:0; cursor:pointer; }
     #app { width:min(100vw, 480px); min-height:100dvh; padding:10px 12px calc(14px + env(safe-area-inset-bottom)); position:relative; overflow:hidden; }
     .hud { height:56px; display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--panel); border:2px solid var(--orange); border-radius:18px; font-size:14px; font-weight:700; white-space:nowrap; }
@@ -28,7 +28,7 @@
     .order .caption { color:var(--dark); font-size:12px; font-weight:800; }
     .order .target { margin-top:8px; font-size:16px; font-weight:800; }
     .order .reward { margin-top:7px; font-size:11px; color:var(--muted); }
-    .board { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; padding:7px; background:var(--blue); border:3px solid #70aeb8; border-radius:18px; }
+    .board { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; padding:7px; background:var(--blue); border:3px solid #70aeb8; border-radius:18px; touch-action:none; }
     .cell { min-width:0; aspect-ratio:1; display:flex; align-items:center; justify-content:center; position:relative; background:#ebf4ef; border-radius:10px; user-select:none; }
     .cell.food { background:rgba(255,255,255,.18); overflow:hidden; transition:transform .12s, filter .12s; }
     .cell.food:hover { transform:translateY(-3px) scale(1.04); filter:drop-shadow(0 5px 3px rgba(77,60,44,.22)); }
@@ -53,9 +53,9 @@
     #message { flex:1; }
     #reset, #catalogOpen { padding:8px 9px; background:#ffdfad; border:1px solid var(--orange); border-radius:11px; color:var(--dark); font-size:12px; }
     #catalogOpen { background:#e2f3f5; border-color:#70aeb8; }
-    .catalog-backdrop { position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center; padding:14px; background:rgba(45,53,45,.45); }
+    .catalog-backdrop { position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center; padding:14px; background:rgba(45,53,45,.45); touch-action:pan-y; }
     .catalog-backdrop.open { display:flex; }
-    .catalog { width:min(100%, 650px); max-height:min(88dvh, 760px); overflow:auto; background:#fff9e0; border:3px solid var(--orange); border-radius:22px; padding:16px; box-shadow:0 12px 36px rgba(49,49,37,.25); }
+    .catalog { width:min(100%, 650px); max-height:min(88dvh, 760px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; background:#fff9e0; border:3px solid var(--orange); border-radius:22px; padding:16px; box-shadow:0 12px 36px rgba(49,49,37,.25); }
     .catalog-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
     .catalog-head h2 { margin:0; color:var(--dark); font-size:20px; }
     .catalog-close { margin-left:auto; width:34px; height:34px; border-radius:50%; background:#ffdfad; border:1px solid var(--orange); font-size:20px; line-height:1; }
@@ -102,7 +102,7 @@
 </head>
 <body>
 <main id="app">
-  <header class="hud"><span class="day" id="day">第 1 天</span><span class="resource" id="coins">🪙 120</span><span class="resource">💎 3</span><span class="bag-progress" aria-label="蔬菜包开启进度">🥬 <b id="openedCount">0</b>/100</span><span class="bag-progress meat" aria-label="肉类包开启进度">🥩 <b id="meatOpenedCount">0</b>/100</span></header>
+  <header class="hud"><span class="day" id="day">第 1 天</span><span class="resource" id="coins">🪙 120</span><span class="resource">💎 3</span><span class="bag-progress" aria-label="蔬菜包开启进度">🥬 <b id="openedCount">0</b>/1000</span><span class="bag-progress meat" aria-label="肉类包开启进度">🥩 <b id="meatOpenedCount">0</b>/1000</span></header>
   <section class="scene"><h1>肥鹅小厨房</h1><p>今天也要做出好吃的料理！</p><div class="goose">🪿</div><div class="order"><div class="caption">今日订单</div><div class="target" id="orderTarget"></div><div class="reward" id="orderReward"></div></div></section>
   <section class="board" id="board" aria-label="合成棋盘"></section>
   <footer class="footer"><span id="message">拖动相同食材进行合成</span><button id="catalogOpen" aria-label="打开料理图鉴">📖 图鉴</button><button id="reset">重新开始</button></footer>
@@ -255,7 +255,7 @@
   // Legacy level reference retained for saved games: kind.maxLevel-1; 特色料理 remains supported.
   function foodName(food){ return food.category==='fusion'?fusionName(food.recipe,food.level):isChainFood(food)?routeItem(food.type,food.level,food.category).name:kinds[food.type].levels[food.level-1]; }
   function foodEmoji(food){ return food.category==='fusion'?'🍽️':isChainFood(food)?routeItem(food.type,food.level,food.category).emoji:kinds[food.type].emoji; }
-  function reset(){ state={day:1,coins:120,bags:100,opened:0,meatBags:100,meatOpened:0,bagIndex:0,meatBagIndex:1,potIndex:2,potOpen:false,potContents:[],order:newOrder(),cells:Array(56).fill(null),discovered:{}}; [1,1,1,1,1].forEach(level=>addFood('cabbage',level,true,'vegetable')); [1,1].forEach(level=>addFood('chicken-leg',level,true,'meat')); state.cells[state.bagIndex]={kind:'bag',category:'vegetable'}; state.cells[state.meatBagIndex]={kind:'bag',category:'meat'}; state.cells[state.potIndex]={kind:'pot'}; state.message='将蔬菜、肉类或料理拖入锅中，再点击锅开火'; render(); }
+  function reset(){ state={day:1,coins:120,bags:1000,opened:0,meatBags:1000,meatOpened:0,bagIndex:0,meatBagIndex:1,potIndex:2,potOpen:false,potContents:[],order:newOrder(),cells:Array(56).fill(null),discovered:{}}; [1,1,1,1,1].forEach(level=>addFood('cabbage',level,true,'vegetable')); [1,1].forEach(level=>addFood('chicken-leg',level,true,'meat')); state.cells[state.bagIndex]={kind:'bag',category:'vegetable'}; state.cells[state.meatBagIndex]={kind:'bag',category:'meat'}; state.cells[state.potIndex]={kind:'pot'}; state.message='将蔬菜、肉类或料理拖入锅中，再点击锅开火'; render(); }
   function addFood(type=randomKind(),level=1,chain=vegetableByType[type]!==undefined || meatByType[type]!==undefined,category=meatByType[type]?'meat':'vegetable'){ const i=state.cells.findIndex((cell,index)=>cell===null && index!==state.bagIndex && index!==state.meatBagIndex && index!==state.potIndex); if(i<0)return null; state.cells[i]=chain?chainFood(type,level,category):{type,level}; return i; }
   function discoveryKey(food){ return food.category==='fusion'?`fusion:${canonicalFusionRecipe(food.recipe)}:${food.level}`:`${food.type}:${food.level}`; }
   function discover(food){ state.discovered[discoveryKey(food)]=true; }
