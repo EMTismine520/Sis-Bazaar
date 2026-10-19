@@ -501,7 +501,7 @@ console.log(JSON.stringify({prices,sequence,afterSequence,purchased,repeat,poor,
 
 def test_v2_order_failure_success_refresh_and_no_duplicate_reward():
     result = run_web_runtime("""
-state.order={items:[chainFood('cabbage',1,'vegetable')],submitted:[false],level:1,quantity:1,reward:999};
+state.order={items:[chainFood('cabbage',1,'vegetable')],submitted:[false],level:1,quantity:1,reward:40,orderRule:'daily-v1',perItemReward:24,completionReward:16};
 const before=JSON.stringify(state), failed=submitOrder(8), preserved=before===JSON.stringify(state);
 const message=$('message').textContent, oldOrder=state.order;
 const success=submitOrder(3), refreshed=state.order!==oldOrder;
@@ -511,73 +511,85 @@ console.log(JSON.stringify({failed,preserved,message,success,refreshed,nextValid
 """)
     assert result["failed"]["result"] == "invalid" and result["preserved"]
     assert "订单还需要" in result["message"]
-    assert result["success"] == {"result": "submitted", "reward": 24, "submitted": 1}
+    assert result["success"]["result"] == "submitted" and result["success"]["reward"] == 40
+    assert result["success"]["itemReward"] == 24 and result["success"]["completionReward"] == 16
     assert result["refreshed"] and result["nextValid"] and result["duplicate"]["result"] == "invalid"
-    assert result["coins"] == 144 and result["day"] == 2 and result["cell"] is None
+    assert result["coins"] == 160 and result["day"] == 2 and result["cell"] is None
     assert result["bags"] == result["meatBags"] == 1000
 
 
 def test_v2_fusion_orders_match_recipe_and_level():
     result = run_web_runtime("""
 const route=potLv5Routes[0];
-state.order={items:[{category:'fusion',recipe:route.id,level:5}],submitted:[false],level:5,quantity:1,reward:orderReward(5)};
+state.order={items:[{category:'fusion',recipe:route.id,level:5}],submitted:[false],level:5,quantity:1,reward:orderRewardFor(5,1),orderRule:'daily-v1',perItemReward:orderReward(5),completionReward:16};
 state.cells[3]={category:'fusion',recipe:route.ingredients.slice().reverse().join('|'),level:5};
 state.cells[4]={category:'fusion',recipe:potLv5Routes[1].id,level:5};
 const wrongRecipe=submitOrder(4), success=submitOrder(3);
 console.log(JSON.stringify({wrongRecipe,success,coins:state.coins,remaining:state.cells[4]}));
 """)
     assert result["wrongRecipe"]["result"] == "invalid" and result["remaining"]
-    assert result["success"]["reward"] == 56 and result["coins"] == 176
+    assert result["success"]["reward"] == 72 and result["coins"] == 192
 
 
-def test_v2_orders_only_use_discovered_unlocked_foods_and_fallback():
+def test_v2_orders_include_today_route_even_when_locked_or_undiscovered():
     result = run_web_runtime("""
+state.day=3;
 state.discovered={'cabbage:1':true};
-const fallback=newOrder();
-buyIngredient('vegetable',4);
-state.discovered['tomato:2']=true;
-const purchasedOnly=orderCandidates();
-state.discovered['thick-steak:4']=true; // Still locked on the meat route.
-const route=potLv4Routes[0];state.discovered[discoveryKey({category:'fusion',recipe:route.id,level:4})]=true;
-const pool=orderCandidates();
-const samples=Array.from({length:200},()=>newOrder());
-console.log(JSON.stringify({fallback,purchasedOnly,pool,samples}));
-""")
-    assert result["fallback"]["items"][0]["type"] == "cabbage"
-    assert len(result["purchasedOnly"]) == 2  # Without a discovered dish, orders fall back to discovered basics.
-    assert len(result["pool"]) == 4
-    expected = {
-        (item.get("category"), item.get("type"), item.get("recipe"), item["level"])
-        for item in result["pool"]
-    }
-    sampled = {
-        (item["items"][0].get("category"), item["items"][0].get("type"), item["items"][0].get("recipe"), item["items"][0]["level"])
-        for item in result["samples"]
-    }
-    assert sampled <= expected
-    assert not any(item.get("type") == "thick-steak" for item in result["pool"])
-
-
-def test_v2_orders_scale_level_and_quantity_by_day_with_duplicate_fallback():
-    result = run_web_runtime("""
-state.discovered={'cabbage:1':true,'tomato:2':true,'pepper:3':true,'chicken-leg:1':true,'fusion:cabbage+pork:4':true};
 state.unlockedLevels={vegetable:3,meat:3};
-state.day=1;const day1=newOrder();
-state.day=3;const day3=newOrder();
-state.day=5;const day5=newOrder();
-state.discovered={'cabbage:1':true};state.day=5;const onlyOne=newOrder();
-console.log(JSON.stringify({day1,day3,day5,onlyOne}));
+const candidatePool=orderCandidates(2), order=newOrder(), discoveredAfter=Object.keys(state.discovered).sort();
+const fixed=JSON.stringify(order);state.discovered['tomato:2']=true;state.unlockedLevels.vegetable=4;
+const unchanged=JSON.stringify(order)===fixed;
+const sampled=Array.from({length:100},()=>newOrder());
+console.log(JSON.stringify({candidatePool,order,discoveredAfter,unchanged,sampled}));
 """)
-    assert result["day1"]["quantity"] == 1 and result["day1"]["level"] == 1
-    assert result["day3"]["quantity"] == 2 and result["day3"]["level"] == 2
-    assert result["day5"]["quantity"] == 3 and result["day5"]["level"] == 3
-    assert len(result["onlyOne"]["items"]) == 3
-    assert {item["type"] for item in result["onlyOne"]["items"]} == {"cabbage"}
+    assert {(item["type"], item["level"]) for item in result["candidatePool"]} == {("tomato", 2), ("bacon", 2)}
+    assert result["order"]["quantity"] == 2 and result["order"]["level"] == 2
+    assert {item["type"] for item in result["order"]["items"]} == {"tomato", "bacon"}
+    assert result["discoveredAfter"] == ["cabbage:1"]
+    assert result["unchanged"]
+    assert all({item["type"] for item in order["items"]} == {"tomato", "bacon"} for order in result["sampled"])
+    assert all(item["level"] == 2 for item in result["sampled"][0]["items"])
+
+
+def test_v2_daily_orders_follow_level_and_quantity_rhythm_through_level_eight():
+    result = run_web_runtime("""
+const days=Array.from({length:20},(_,offset)=>{state.day=offset+1;const order=newOrder();return {day:state.day,level:order.level,quantity:order.quantity,items:order.items};});
+console.log(JSON.stringify(days));
+""")
+    expected_levels = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 8, 8, 8, 8]
+    assert [item["level"] for item in result] == expected_levels
+    assert [item["quantity"] for item in result] == [1, 1] + [2, 2] + [3] * 16
+    assert result[0]["items"][0]["type"] in {"cabbage", "chicken-leg"}
+    assert {item["type"] for item in result[2]["items"]} == {"tomato", "bacon"}
+    for order in (result[4], result[14], result[19]):
+        assert len(order["items"]) == 3
+        assert len({item["type"] for item in order["items"]}) == 2
+        assert sorted({item["category"] for item in order["items"]}) == ["meat", "vegetable"]
+
+
+def test_v2_discovered_dishes_join_route_candidates_without_revealing_targets():
+    result = run_web_runtime("""
+state.day=7;
+state.unlockedLevels={vegetable:3,meat:3};
+const dish=potLv4Routes[0];
+state.discovered[discoveryKey({category:'fusion',recipe:dish.id,level:4})]=true;
+const pool=orderCandidates(4),order=newOrder(),before=Object.keys(state.discovered).sort();
+const locked=order.items.filter(item=>item.chain).map(orderTargetStatus);
+const stable=JSON.stringify(order);
+buyIngredient('vegetable',4);
+console.log(JSON.stringify({pool,order,before,after:Object.keys(state.discovered).sort(),locked,unlockedStatus:orderTargetStatus(chainFood('carrot',4,'vegetable')),stableAfterBuy:JSON.stringify(order)===stable}));
+""")
+    assert len(result["pool"]) == 3
+    assert any(item["category"] == "fusion" and item["level"] == 4 for item in result["pool"])
+    assert all("需先在商店解锁 Lv.4" in status for status in result["locked"])
+    assert result["unlockedStatus"] == "合成后提交"
+    assert "carrot:4" not in result["after"]
+    assert result["stableAfterBuy"]
 
 
 def test_v2_mixed_order_submits_one_target_at_a_time_and_pays_once():
     result = run_web_runtime("""
-state.order={items:[chainFood('cabbage',1,'vegetable'),chainFood('chicken-leg',1,'meat')],submitted:[false,false],level:1,quantity:2,reward:999};
+state.order={items:[chainFood('cabbage',1,'vegetable'),chainFood('chicken-leg',1,'meat')],submitted:[false,false],level:1,quantity:2,reward:40,orderRule:'daily-v1',perItemReward:24,completionReward:16};
 state.cells[3]={type:'tomato',level:1};
 state.cells[4]=chainFood('cabbage',1,'vegetable');
 state.cells[5]=chainFood('chicken-leg',1,'meat');
@@ -587,20 +599,45 @@ const complete=submitOrder(5),afterCoins=state.coins,afterDay=state.day,duplicat
 console.log(JSON.stringify({failed,preserved,partial,partialCoins,partialDay,progress,complete,afterCoins,afterDay,duplicate,cell4:state.cells[4],cell5:state.cells[5]}));
 """)
     assert result["failed"]["result"] == "invalid" and result["preserved"]
-    assert result["partial"] == {"result": "partial", "submitted": 1, "remaining": 1}
-    assert result["partialCoins"] == 120 and result["partialDay"] == 1
+    assert result["partial"]["result"] == "partial" and result["partial"]["submitted"] == 1
+    assert result["partial"]["reward"] == 24 and result["partial"]["completionReward"] == 0
+    assert result["partialCoins"] == 144 and result["partialDay"] == 1
     assert result["progress"] == [True, False]
-    assert result["complete"]["result"] == "submitted" and result["complete"]["reward"] == 32
-    assert result["afterCoins"] == 152 and result["afterDay"] == 2
+    assert result["complete"]["result"] == "submitted" and result["complete"]["reward"] == 40
+    assert result["complete"]["itemReward"] == 24 and result["complete"]["completionReward"] == 16
+    assert result["afterCoins"] == 184 and result["afterDay"] == 2
     assert result["duplicate"]["result"] == "invalid"
     assert result["cell4"] is None and result["cell5"] is None
 
 
+def test_v2_partial_submission_saves_reward_and_restores_without_duplicate_payment():
+    result = run_web_runtime("""
+state.day=3;
+state.order=newOrder();
+const first=state.order.items[0];
+state.cells[3]={...first};
+const partial=submitOrder(3),saved=JSON.parse(localStorage.getItem(SAVE_KEY));
+beginNewGame();const restored=loadGame(),after=JSON.parse(localStorage.getItem(SAVE_KEY));
+const duplicate=submitOrder(3);
+console.log(JSON.stringify({partial,saved,restored,after,duplicate,coins:state.coins,day:state.day,order:state.order}));
+""")
+    assert result["partial"]["result"] == "partial" and result["partial"]["reward"] == 32
+    assert result["saved"]["coins"] == 152 and result["saved"]["day"] == 3
+    assert result["saved"]["orderRule"] == "daily-v1"
+    assert result["saved"]["order"]["orderRule"] == "daily-v1"
+    assert result["saved"]["order"]["submitted"].count(True) == 1
+    assert result["restored"] and result["after"]["coins"] == 152
+    assert result["after"]["order"]["submitted"].count(True) == 1
+    assert result["duplicate"]["result"] == "invalid" and result["coins"] == 152
+
+
 def test_v2_order_reward_formula_scales_extra_targets():
     result = run_web_runtime("""
-console.log(JSON.stringify({single:orderRewardFor(1,1),two:orderRewardFor(4,2),three:orderRewardFor(5,3)}));
+console.log(JSON.stringify(Array.from({length:8},(_,index)=>{const level=index+1,quantity=Math.min(level,3);return {level,quantity,item:orderReward(level),completion:16,total:orderRewardFor(level,quantity)};})));
 """)
-    assert result == {"single": 24, "two": 56, "three": 72}
+    assert [item["total"] for item in result] == [40, 80, 136, 160, 184, 208, 232, 256]
+    assert [item["item"] for item in result] == [24, 32, 40, 48, 56, 64, 72, 80]
+    assert all(item["completion"] == 16 for item in result)
 
 
 def test_v2_storage_roundtrip_keeps_entire_progress_and_pot():
@@ -635,8 +672,25 @@ console.log(JSON.stringify({restored,restoredOrder:saved.order,liveOrder:state.o
 """)
     assert result["restoredOrder"]["submitted"] == [True, False]
     assert result["restoredOrder"]["reward"] == 32
+    assert result["liveOrder"]["orderRule"] == "legacy-v2"
     assert result["migrated"] and result["migratedOrder"]["quantity"] == 1
     assert result["migratedOrder"]["submitted"] == [False]
+
+
+def test_v2_legacy_partial_order_finishes_with_old_reward_then_starts_new_rule():
+    result = run_web_runtime("""
+state.day=5;state.coins=200;
+state.discovered['chicken-leg:1']=true;
+state.order={items:[chainFood('cabbage',1,'vegetable'),chainFood('chicken-leg',1,'meat'),chainFood('cabbage',1,'vegetable')],submitted:[true,false,false],level:1,quantity:3,reward:999};
+state.cells[3]=chainFood('chicken-leg',1,'meat');
+state.cells[4]=chainFood('cabbage',1,'vegetable');
+const before=state.coins,second=submitOrder(3),afterSecond=state.coins,complete=submitOrder(4);
+console.log(JSON.stringify({before,second,afterSecond,complete,coins:state.coins,day:state.day,next:state.order}));
+""")
+    assert result["second"]["result"] == "partial" and result["afterSecond"] == result["before"] == 200
+    assert result["complete"]["result"] == "submitted" and result["complete"]["reward"] == 40
+    assert result["coins"] == 240 and result["day"] == 6
+    assert result["next"]["orderRule"] == "daily-v1" and result["next"]["level"] == 3
 
 
 def test_v2_corrupt_and_incompatible_saves_start_safely():
@@ -680,11 +734,11 @@ function drop(from,target){
   document.hit=target;board.listeners.pointerup({clientX:0,clientY:0});
 }
 drop(3,$('board').children[4]);const mergedCoins=state.coins;
-state.order={items:[chainFood('tomato',2,'vegetable')],submitted:[false],level:2,quantity:1,reward:orderReward(2)};
+state.order={items:[chainFood('tomato',2,'vegetable')],submitted:[false],level:2,quantity:1,reward:orderRewardFor(2,1),orderRule:'daily-v1',perItemReward:orderReward(2),completionReward:16};
 drop(4,$('orderCard'));
 console.log(JSON.stringify({mergedCoins,coins:state.coins,day:state.day,cell:state.cells[4],saved:JSON.parse(localStorage.getItem(SAVE_KEY)).coins}));
 """)
-    assert result == {"mergedCoins": 123, "coins": 155, "day": 2, "cell": None, "saved": 155}
+    assert result == {"mergedCoins": 123, "coins": 171, "day": 2, "cell": None, "saved": 171}
 
 
 def test_v2_page_has_shop_version_order_drop_and_narrow_layout():
@@ -699,7 +753,9 @@ def test_v2_page_has_shop_version_order_drop_and_narrow_layout():
     assert "localStorage.setItem(SAVE_KEY" in html and "localStorage.removeItem(SAVE_KEY" in html
     assert "window.confirm(" in html and "  loadGame();\n})();" in html
     assert "function orderQuantity(day)" in html
-    assert "function orderLevelForDay(day,candidates)" in html
+    assert "function orderLevelForDay(day)" in html
     assert "function orderRewardFor(level,quantity)" in html
+    assert "const ORDER_RULE='daily-v1'" in html
+    assert "每份 +" in html and "明日预告" in html
     assert "items:" in html and "submitted:" in html
     assert "order-progress" in html and "orderNeeds(order)" in html
