@@ -79,4 +79,4 @@ python -m pygbag game
 git -c safe.directory='C:/Users/23815/Desktop/Sis Bazaar' diff --check
 ```
 
-回归测试包含既有合成、锅料理、包次数、素材、图鉴和 Pages 部署检查，以及 Node 执行真实网页脚本的奖励、订单提交、购买限制、订单池、存档恢复、确认重置和指针事件测试。锅料理仍为 5 道 Lv.4、3 道 Lv.5 和 2 道 Lv.6。完整手动验收、提交和发布步骤见 [UPDATE_GUIDE.md](UPDATE_GUIDE.md)。
+回归测试包含既有合成、锅料理、包次数、素材、图鉴和 Pages 部署检查，以及 Node 执行真实网页脚本的奖励、订单提交、购买限制、订单池、存档恢复、确认重置和指针事件测试。锅料理仍为 5 道 Lv.4、3 道 Lv.5 和 2 道 Lv.6。
