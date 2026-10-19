@@ -18,22 +18,25 @@
     .hud .resource { padding:7px 5px; }
     .bag-progress { display:inline-flex; align-items:center; gap:4px; background:#ffe5ac; border:1px solid var(--orange); border-radius:12px; padding:7px 8px; font-weight:800; }
     .bag-progress.meat { background:#f5d6c5; border-color:#c76b4c; }
-    .scene { height:150px; position:relative; padding:22px 6px 0; }
+    .scene { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,205px); gap:8px; align-items:start; position:relative; padding:16px 0 12px; }
+    .scene-intro { min-width:0; padding:7px 6px 0; }
     .scene:before,.scene:after { content:""; position:absolute; border-radius:50%; background:#c4e5cf; z-index:-1; }
     .scene:before { width:110px; height:70px; left:10px; bottom:14px; }
     .scene:after { width:110px; height:100px; right:-14px; top:20px; }
     .scene h1 { font-size:24px; margin:0 0 8px; color:var(--dark); }
     .scene p { margin:0; color:var(--muted); font-size:13px; }
-    .goose { position:absolute; left:42px; bottom:10px; font-size:58px; filter:drop-shadow(0 4px 0 rgba(160,78,34,.15)); }
-    .order { position:absolute; right:0; top:20px; width:164px; min-height:92px; padding:10px 12px; background:var(--panel); border:2px solid var(--orange); border-radius:16px; box-shadow:0 4px 0 rgba(160,78,34,.1); cursor:copy; }
+    .goose { margin-top:18px; text-align:center; font-size:58px; filter:drop-shadow(0 4px 0 rgba(160,78,34,.15)); }
+    .order { min-width:0; padding:9px 10px; background:var(--panel); border:2px solid var(--orange); border-radius:16px; box-shadow:0 4px 0 rgba(160,78,34,.1); cursor:copy; }
     .order:hover { transform:translateY(-2px); box-shadow:0 6px 0 rgba(160,78,34,.14); }
     .order .caption { color:var(--dark); font-size:12px; font-weight:800; }
-    .order .target { margin-top:8px; font-size:12px; font-weight:800; line-height:1.35; }
+    .order .target { margin-top:7px; font-size:11px; font-weight:800; line-height:1.3; }
     .order .order-progress { margin-bottom:5px; color:var(--muted); font-size:11px; font-weight:700; }
     .order .order-list { display:grid; gap:3px; }
-    .order .order-item { padding:3px 5px; border-radius:7px; background:#fff1ce; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .order .order-item { padding:4px 5px; border-radius:7px; background:#fff1ce; overflow-wrap:anywhere; white-space:normal; }
+    .order .order-status { display:block; margin-top:1px; color:#8b7657; font-size:9px; font-weight:700; }
     .order .order-item.done { color:#7d9279; background:#e6f1df; text-decoration:line-through; }
-    .order .reward { margin-top:7px; font-size:11px; color:var(--muted); }
+    .order .reward { margin-top:6px; font-size:10px; line-height:1.4; color:var(--muted); }
+    .order .preview { display:block; margin-top:4px; color:var(--dark); font-size:9px; font-weight:700; }
     .board { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; padding:7px; background:var(--blue); border:3px solid #70aeb8; border-radius:18px; touch-action:none; }
     .cell { min-width:0; aspect-ratio:1; display:flex; align-items:center; justify-content:center; position:relative; background:#ebf4ef; border-radius:10px; user-select:none; }
     .cell.food { background:rgba(255,255,255,.18); overflow:hidden; transition:transform .12s, filter .12s; }
@@ -127,7 +130,8 @@
     .shop-note { margin:6px 0 0; color:var(--muted); font-size:11px; line-height:1.4; }
     @media (max-width:600px) { .catalog-backdrop, .shop-backdrop { padding:10px; } .catalog { width:calc(100vw - 20px); height:min(78vh, 680px); max-height:calc(100vh - 20px); height:min(78dvh, 680px); max-height:calc(100dvh - 20px); } .shop { width:calc(100vw - 20px); max-height:min(78vh, 680px); max-height:min(78dvh, 680px); } }
     @media (max-width:420px) { #app { padding-left:8px; padding-right:8px; } .hud { gap:4px; padding-left:7px; padding-right:7px; font-size:12px; } .hud .version { display:none; } .bag-progress { padding:6px 5px; } .catalog, .shop { padding:12px 10px; border-radius:18px; } .catalog-item, .shop-item { font-size:9px; } .shop-items { gap:5px; } }
-    @media (max-width:420px) { .hud { flex-wrap:wrap; height:auto; min-height:56px; } .hud .version { display:inline; } .hud .resource { padding:4px 2px; } .bag-progress { font-size:10px; gap:2px; } .footer { flex-wrap:wrap; gap:6px; } #message { flex-basis:100%; } .scene h1 { font-size:20px; } .scene p { max-width:140px; font-size:11px; } .order { width:154px; } }
+    @media (max-width:420px) { .hud { flex-wrap:wrap; height:auto; min-height:56px; } .hud .version { display:inline; } .hud .resource { padding:4px 2px; } .bag-progress { font-size:10px; gap:2px; } .footer { flex-wrap:wrap; gap:6px; } #message { flex-basis:100%; } .scene { grid-template-columns:minmax(0,1fr) minmax(0,60%); } .scene h1 { font-size:20px; } .scene p { font-size:11px; } }
+    @media (max-width:340px) { .order { padding:8px; } .order .caption { font-size:11px; } .order .target { font-size:10px; } }
     .toast { position:fixed; left:50%; top:82px; transform:translateX(-50%); width:max-content; max-width:calc(100vw - 24px); padding:10px 16px; color:#fff; background:rgba(69,58,48,.9); border-radius:20px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .18s; z-index:20; }
     .toast.show { opacity:1; }
     @media (min-width:600px) { #app { padding-top:20px; } }
@@ -136,7 +140,7 @@
 <body>
 <main id="app">
   <header class="hud"><span class="day" id="day">第 1 天</span><span class="resource" id="coins">🪙 120</span><span class="resource">💎 3</span><span class="bag-progress" aria-label="蔬菜包开启进度">🥬 <b id="openedCount">0</b>/1000</span><span class="bag-progress meat" aria-label="肉类包开启进度">🥩 <b id="meatOpenedCount">0</b>/1000</span><span class="version">v2.0.0</span></header>
-  <section class="scene"><h1>肥鹅小厨房</h1><p>今天也要做出好吃的料理！</p><div class="goose">🪿</div><div class="order" id="orderCard" role="button" aria-label="将匹配的食材或料理拖到此处提交订单"><div class="caption">今日订单 · 拖到此处提交</div><div class="target" id="orderTarget"></div><div class="reward" id="orderReward"></div></div></section>
+  <section class="scene"><div class="scene-intro"><h1>肥鹅小厨房</h1><p>今天也要做出好吃的料理！</p><div class="goose">🪿</div></div><div class="order" id="orderCard" role="button" aria-label="将匹配的食材或料理拖到此处提交订单"><div class="caption">今日订单 · 拖到此处提交</div><div class="target" id="orderTarget"></div><div class="reward" id="orderReward"></div><small class="preview" id="orderPreview"></small></div></section>
   <section class="board" id="board" aria-label="合成棋盘"></section>
   <footer class="footer"><span id="message">拖动相同食材进行合成</span><button id="shopOpen" aria-label="打开食材商店">🛒 商店</button><button id="catalogOpen" aria-label="打开料理图鉴">📖 图鉴</button><button id="reset">重新开始</button></footer>
 </main>
@@ -170,6 +174,8 @@
 (() => {
   const GAME_VERSION='2.0.0';
   const SAVE_SCHEMA=2;
+  const ORDER_RULE='daily-v1';
+  const LEGACY_ORDER_RULE='legacy-v2';
   const SAVE_KEY='sis-bazaar-game-v2';
   const kinds = {
     cabbage:{category:'vegetable',name:'包菜',emoji:'🥬',levels:['包菜','包菜沙拉','包菜卷'],maxLevel:3,assetPrefix:'foods'},
@@ -301,19 +307,21 @@
     return {result:'cooked',destination,food,route};
   }
   function assetFor(food,level){ if(typeof food==='object' && food.category==='fusion'){ const route=potById[canonicalFusionRecipe(food.recipe)] || fusionRoute(food.recipe,level); return route?.asset || ''; } const type=typeof food==='string'?food:food.type; if(typeof food==='object' && isChainFood(food))return `${food.category==='meat'?meatAssetPrefix:vegetableAssetPrefix}/${type}.png`; return `assets/${kinds[type].assetPrefix}/${type}-lv${level}.png`; }
-  function orderCandidates(){
+  function orderLevelForDay(day){ return Math.min(8,1+Math.floor((Math.max(1,day)-1)/2)); }
+  function orderQuantity(day){ return Math.min(orderLevelForDay(day),3); }
+  function orderCandidates(level=orderLevelForDay(state?.day || 1)){
     const ingredients=[],dishes=[];
     for(const [category,route] of [['vegetable',vegetableRoute],['meat',meatRoute]]){
-      for(const item of route){ if(isRouteLevelUnlocked(category,item.level) && state.discovered[`${item.type}:${item.level}`]) ingredients.push({category,chain:true,type:item.type,level:item.level}); }
+      for(const item of route){
+        if(item.level===level)ingredients.push({category,chain:true,type:item.type,level:item.level});
+      }
     }
-    for(const route of potRoutes){ if(state.discovered[`fusion:${canonicalFusionRecipe(route.id)}:${route.level}`]) dishes.push({category:'fusion',recipe:route.id,level:route.level}); }
-    return dishes.length?[...ingredients,...dishes]:ingredients.filter(item=>item.level===1);
-  }
-  function orderQuantity(day){ return day<=2?1:day<=4?2:3; }
-  function orderLevelForDay(day,candidates){
-    const desired=1+Math.floor((day-1)/2);
-    const highest=candidates.length?Math.max(...candidates.map(item=>item.level)):1;
-    return Math.min(desired,highest);
+    for(const route of potRoutes){
+      if(route.level===level && state.discovered[`fusion:${canonicalFusionRecipe(route.id)}:${route.level}`]){
+        dishes.push({category:'fusion',recipe:route.id,level:route.level});
+      }
+    }
+    return [...ingredients,...dishes];
   }
   function shuffleCandidates(items){
     const result=items.slice();
@@ -323,36 +331,36 @@
     }
     return result;
   }
-  function orderRewardFor(level,quantity){ return orderReward(level)+(quantity-1)*8; }
+  function legacyOrderRewardFor(level,quantity){ return orderReward(level)+(quantity-1)*8; }
+  function orderRewardFor(level,quantity){ return quantity*orderReward(level)+16; }
   function newOrder(){
-    const candidates=orderCandidates();
     const quantity=orderQuantity(state?.day || 1);
-    const fallback={category:'vegetable',chain:true,type:'cabbage',level:1};
-    let level=orderLevelForDay(state?.day || 1,candidates);
-    let sameLevel=candidates.filter(item=>item.level===level);
-    if(!sameLevel.length && candidates.length){
-      const lowerLevels=candidates.filter(item=>item.level<=level).map(item=>item.level);
-      level=lowerLevels.length?Math.max(...lowerLevels):Math.min(...candidates.map(item=>item.level));
-      sameLevel=candidates.filter(item=>item.level===level);
-    }
-    const pool=sameLevel.length?sameLevel:[fallback];
-    const shuffled=shuffleCandidates(pool.length?pool:[fallback]);
+    const level=orderLevelForDay(state?.day || 1);
+    const pool=orderCandidates(level);
+    const shuffled=shuffleCandidates(pool);
     const items=Array.from({length:quantity},(_,index)=>({...shuffled[index%shuffled.length]}));
-    return {items,submitted:Array(quantity).fill(false),level,quantity,reward:orderRewardFor(level,quantity)};
+    return {items,submitted:Array(quantity).fill(false),level,quantity,reward:orderRewardFor(level,quantity),orderRule:ORDER_RULE,perItemReward:orderReward(level),completionReward:16};
   }
   function normalizeOrder(order){
     if(!order || typeof order!=='object')return null;
+    if(order.orderRule!==undefined && ![ORDER_RULE,LEGACY_ORDER_RULE].includes(order.orderRule))return null;
     if(Array.isArray(order.items)){
-      if(!order.items.length || !order.items.every(validFood))return null;
+      if(!order.items.length || order.items.length>3 || !order.items.every(validFood))return null;
+      if(order.quantity!==undefined && order.quantity!==order.items.length)return null;
       const level=Number.isInteger(order.level)?order.level:order.items[0].level;
       if(order.items.some(item=>item.level!==level))return null;
       if(!Array.isArray(order.submitted) || order.submitted.length!==order.items.length || order.submitted.some(value=>typeof value!=='boolean'))return null;
-      return {items:order.items.map(item=>({...item})),submitted:order.submitted.slice(),level,quantity:order.items.length,reward:orderRewardFor(level,order.items.length)};
+      const orderRule=order.orderRule===ORDER_RULE?ORDER_RULE:LEGACY_ORDER_RULE;
+      const quantity=order.items.length;
+      if(orderRule===ORDER_RULE && (level<1 || level>8 || quantity<1 || quantity>3))return null;
+      return orderRule===ORDER_RULE
+        ? {items:order.items.map(item=>({...item})),submitted:order.submitted.slice(),level,quantity,reward:orderRewardFor(level,quantity),orderRule,perItemReward:orderReward(level),completionReward:16}
+        : {items:order.items.map(item=>({...item})),submitted:order.submitted.slice(),level,quantity,reward:legacyOrderRewardFor(level,quantity),orderRule};
     }
     if(validFood(order)){
       const item={...order};
       delete item.reward;
-      return {items:[item],submitted:[false],level:item.level,quantity:1,reward:orderRewardFor(item.level,1)};
+      return {items:[item],submitted:[false],level:item.level,quantity:1,reward:legacyOrderRewardFor(item.level,1),orderRule:LEGACY_ORDER_RULE};
     }
     return null;
   }
@@ -385,6 +393,19 @@
     order.submitted[match]=true;
     state.cells[index]=null;
     const submitted=order.submitted.filter(Boolean).length;
+    if(order.orderRule===ORDER_RULE){
+      const itemReward=order.perItemReward || orderReward(order.level);
+      state.coins+=itemReward;
+      if(submitted<order.quantity){
+        render(); toast(`已提交 ${foodName(food)}（${submitted}/${order.quantity}），金币 +${itemReward}，还需 ${orderNeeds(order)}`);
+        return {result:'partial',submitted,remaining:order.quantity-submitted,reward:itemReward,itemReward,completionReward:0};
+      }
+      const completionReward=order.completionReward || 16;
+      state.coins+=completionReward; state.day++;
+      const totalReward=itemReward+completionReward;
+      state.order=newOrder(); render(); toast(`订单完成！金币 +${totalReward}，迎来第 ${state.day} 天`);
+      return {result:'submitted',reward:totalReward,totalReward:order.reward,itemReward,completionReward,submitted:order.quantity};
+    }
     if(submitted<order.quantity){
       render(); toast(`已提交 ${foodName(food)}（${submitted}/${order.quantity}），还需 ${orderNeeds(order)}`);
       return {result:'partial',submitted,remaining:order.quantity-submitted};
@@ -442,18 +463,23 @@
   function discover(food){ state.discovered[discoveryKey(food)]=true; }
   function saveState(){
     if(!state)return;
-    const snapshot={schema:SAVE_SCHEMA,version:GAME_VERSION,day:state.day,coins:state.coins,bags:state.bags,opened:state.opened,meatBags:state.meatBags,meatOpened:state.meatOpened,bagIndex:state.bagIndex,meatBagIndex:state.meatBagIndex,potIndex:state.potIndex,potContents:state.potContents,cells:state.cells,order:state.order,discovered:state.discovered,unlockedLevels:state.unlockedLevels};
+    const snapshot={schema:SAVE_SCHEMA,version:GAME_VERSION,orderRule:ORDER_RULE,day:state.day,coins:state.coins,bags:state.bags,opened:state.opened,meatBags:state.meatBags,meatOpened:state.meatOpened,bagIndex:state.bagIndex,meatBagIndex:state.meatBagIndex,potIndex:state.potIndex,potContents:state.potContents,cells:state.cells,order:state.order,discovered:state.discovered,unlockedLevels:state.unlockedLevels};
     try{localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot));}catch(error){}
   }
   function validFood(food){
     if(!food || typeof food!=='object' || !Number.isInteger(food.level))return false;
     if(food.category==='fusion')return Number.isInteger(food.level) && Boolean(potById[canonicalFusionRecipe(food.recipe)]) && potById[canonicalFusionRecipe(food.recipe)].level===food.level;
-    if(food.chain && ['vegetable','meat'].includes(food.category))return Boolean(routeForCategory(food.category).find(item=>item.type===food.type && item.level===food.level));
+    if(food.chain)return ['vegetable','meat'].includes(food.category) && Boolean(routeForCategory(food.category).find(item=>item.type===food.type && item.level===food.level));
     return Boolean(kinds[food.type] && Number.isInteger(food.level) && food.level>=1 && food.level<=kinds[food.type].maxLevel);
   }
   function validOrder(order,saved){
     const normalized=normalizeOrder(order);
     if(!normalized || normalized.submitted.every(Boolean))return false;
+    if(normalized.orderRule===ORDER_RULE){
+      return normalized.items.every(item=>item.category==='fusion'
+        ? Boolean(saved.discovered[discoveryKey(item)])
+        : Boolean(item.chain && item.level===normalized.level && routeForCategory(item.category).some(route=>route.type===item.type && route.level===item.level)));
+    }
     return normalized.items.every(item=>{
       if(item.chain && item.level>saved.unlockedLevels[item.category])return false;
       return Boolean(saved.discovered[discoveryKey(item)]);
@@ -461,6 +487,7 @@
   }
   function validSavedState(saved){
     if(!saved || saved.schema!==SAVE_SCHEMA || saved.version!==GAME_VERSION || !Array.isArray(saved.cells) || saved.cells.length!==56)return false;
+    if(saved.orderRule!==undefined && saved.orderRule!==ORDER_RULE)return false;
     if(!saved.unlockedLevels || !Number.isInteger(saved.unlockedLevels.vegetable) || !Number.isInteger(saved.unlockedLevels.meat))return false;
     if(saved.unlockedLevels.vegetable<3 || saved.unlockedLevels.vegetable>vegetableRoute.length || saved.unlockedLevels.meat<3 || saved.unlockedLevels.meat>meatRoute.length)return false;
     if(!saved.discovered || typeof saved.discovered!=='object' || Array.isArray(saved.discovered) || saved.discovered['cabbage:1']!==true || !Array.isArray(saved.potContents) || saved.potContents.length>3)return false;
@@ -484,14 +511,27 @@
     }
     beginNewGame(); render(); return false;
   }
+  function orderTargetStatus(item){
+    if(item.chain && !isRouteLevelUnlocked(item.category,item.level))return `需先在商店解锁 Lv.${item.level}`;
+    if(item.chain && !state.discovered[discoveryKey(item)])return '合成后提交';
+    return '已发现 · 可提交';
+  }
+  function orderRewardText(order){
+    if(order.orderRule!==ORDER_RULE)return `旧订单完成奖励 🪙 ${order.reward}`;
+    const itemReward=order.perItemReward || orderReward(order.level);
+    const completionReward=order.completionReward || 16;
+    const remaining=order.submitted.filter(value=>!value).length*itemReward+completionReward;
+    return `每份 +${itemReward} · 完成 +${completionReward} · 剩余可得 +${remaining}`;
+  }
   function openBag(category){ const isMeat=category==='meat'; const count=isMeat?state.meatBags:state.bags; if(!count)return toast(`${isMeat?'肉类':'蔬菜'}包用完啦`); const i=isMeat?addFood('chicken-leg',1,true,'meat'):addFood('cabbage',1,true,'vegetable'); if(i===null)return toast('棋盘已满，请先整理出空位'); if(isMeat){state.meatBags--;state.meatOpened++;}else{state.bags--;state.opened++;} discover(state.cells[i]); toast(`打开${isMeat?'肉类':'蔬菜'}包，获得 ${foodName(state.cells[i])}`); render(); }
   function toast(msg){ $('message').textContent=msg; const el=$('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>el.classList.remove('show'),1400); }
   function render(){
     state.order=normalizeOrder(state.order) || newOrder();
     const orderSubmitted=state.order.submitted.filter(Boolean).length;
     $('day').textContent=`第 ${state.day} 天`; $('coins').textContent=`🪙 ${state.coins}`; $('openedCount').textContent=state.opened; $('meatOpenedCount').textContent=state.meatOpened;
-    $('orderTarget').innerHTML=`<div class="order-progress">进度 ${orderSubmitted}/${state.order.quantity} · 目标 Lv.${state.order.level}</div><div class="order-list">${state.order.items.map((item,index)=>`<div class="order-item${state.order.submitted[index]?' done':''}">${foodEmoji(item)} ${foodName(item)} Lv.${item.level}${state.order.submitted[index]?' ✓':''}</div>`).join('')}</div>`;
-    $('orderReward').textContent=`完成奖励  🪙 ${state.order.reward}`;
+    $('orderTarget').innerHTML=`<div class="order-progress">进度 ${orderSubmitted}/${state.order.quantity} · 目标 Lv.${state.order.level}</div><div class="order-list">${state.order.items.map((item,index)=>`<div class="order-item${state.order.submitted[index]?' done':''}">${foodEmoji(item)} ${foodName(item)} Lv.${item.level}${state.order.submitted[index]?' ✓':''}${state.order.submitted[index]?'':`<small class="order-status">${orderTargetStatus(item)}</small>`}</div>`).join('')}</div>`;
+    $('orderReward').textContent=orderRewardText(state.order);
+    $('orderPreview').textContent=`明日预告 · Lv.${orderLevelForDay(state.day+1)} · ${orderQuantity(state.day+1)} 份`;
     const board=$('board'); board.innerHTML=''; const boardHasSpace=emptyBoardIndex()>=0; state.cells.forEach((food,i)=>{
       const cell=document.createElement('div'); cell.dataset.index=i;
       if(i===state.potIndex){ cell.className=`cell pot-cell${state.potContents.length?' ready':''}`; cell.title='打开烹饪锅'; cell.setAttribute('aria-label',cell.title); cell.innerHTML=`<img src="assets/cooking/cooking-pot.png" alt="烹饪锅"><b class="pot-count">${state.potContents.length?`${state.potContents.length}/3`:'可烹饪'}</b>`; board.appendChild(cell); return; }
